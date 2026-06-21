@@ -1,6 +1,6 @@
-[skse_template.NPC]
+[er-equipload.NPC]
 # fNPCStaminaCostAttack = 10.0
 
-[skse_template.Player]
+[er-equipload.Player]
 # fPlayerStaminaCostAttack = 10.0
 
