@@ -13,8 +13,8 @@ void RestoreDefaults();
 
 namespace TITLE
 {
-inline std::string mod_name_dev     = "skse-template";
-inline std::string mod_name         = "SKSE Template";
+inline std::string mod_name_dev     = "er-equipload";
+inline std::string mod_name         = "ER Equipload";
 inline std::string group_name       = "ASX Mods";
 inline std::string npc_section      = "NPC Config";
 inline std::string player_section   = "Player Config";

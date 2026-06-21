@@ -7,9 +7,9 @@ includes("extern/styyx-utils")
 
 -- set up for project
 
-local mod_name = "skse-template"
+local mod_name = "er-equipload"
 local mod_author = "asx"
-local mod_description = "skse_template_desc"
+local mod_description = "Make it so only equipped items contribute to carry weight"
 
 set_project(mod_name)
 set_version("1.0.0")
@@ -43,7 +43,7 @@ target(mod_name)
         set_targetdir("build/SE/skse/plugins")
     end
 
-    add_rules("skse-template.plugin", {
+    add_rules("er-equipload.plugin", {
         name = mod_name,
         author = mod_author,
         description = mod_description

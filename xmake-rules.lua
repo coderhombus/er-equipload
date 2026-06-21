@@ -82,7 +82,7 @@ BEGIN
 END
 ]]
 
-rule("skse-template.plugin")
+rule("er-equipload.plugin")
     add_deps("win.sdk.resource")
 
     on_config(function(target)
@@ -92,8 +92,8 @@ rule("skse-template.plugin")
         target:set("arch", "x64")
         target:set("kind", "shared")
 
-        local conf = target:extraconf("rules", "skse-template.plugin")
-        local conf_dir = path.join(target:autogendir(), "rules", "skse-template", "plugin")
+        local conf = target:extraconf("rules", "er-equipload.plugin")
+        local conf_dir = path.join(target:autogendir(), "rules", "er-equipload", "plugin")
         os.mkdir(conf_dir)
 
         local conf_map = {
