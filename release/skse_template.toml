@@ -1,0 +1,6 @@
+[skse_template.NPC]
+# fNPCStaminaCostAttack = 10.0
+
+[skse_template.Player]
+# fPlayerStaminaCostAttack = 10.0
+
