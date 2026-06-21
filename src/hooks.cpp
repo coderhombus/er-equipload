@@ -8,8 +8,8 @@
 #include "SKSE/Impl/PCH.h"
 #include "Utility/util.h"
 #include "manager.h"
+#include "mod-data.h"
 #include "st-hooks.h"
-
 
 
 namespace EXCO::HOOKS
@@ -27,28 +27,28 @@ namespace EXCO::HOOKS
 //     return (float)0.016833;
 // }
 
-// void PlayerUpdateHook::Call(RE::PlayerCharacter* a_this, float a_deltaTime)
-// {
-//     Manager::ManageSneakStamina(a_this, a_deltaTime);
-//     Manager::ManageSprintStamina(a_this, a_deltaTime);
-//     Manager::ManageBowDraw(a_this, a_deltaTime);
-//     Manager::ManageSwimStamina(a_this, a_deltaTime);
-//     func(a_this, a_deltaTime);
-// }
 
-// void NPCUpdateHook::Call(RE::Actor* a_this, float a_deltaTime)
-// {
-//     const float r_delta = GetEffectiveDelta(a_deltaTime);
-//     Manager::ManageSneakStamina(a_this, r_delta);
-//     Manager::ManageSprintStamina(a_this, r_delta);
-//     Manager::ManageBowDraw(a_this, r_delta);
-//     Manager::ManageSwimStamina(a_this, r_delta);
-//     func(a_this, a_deltaTime);
-// }
+bool IsOverEncumberedHook::Call(RE::Actor* a_this)
+{
+    if (!a_this || !a_this->IsPlayerRef())
+        return false;
+
+    if (ActorUtil::IsGod(a_this) || a_this->IsOnMount())
+        return false;
+
+    float inventoryWeight = a_this->GetActorValue(RE::ActorValue::kInventoryWeight);
+    float equipped        = a_this->GetEquippedWeight();
+    float carry           = a_this->GetActorValue(RE::ActorValue::kCarryWeight);
+    RE::BGSEntryPoint::HandleEntryPoint(ENTRIES::maxCarryWeightEP, a_this, &carry);
+
+    logs::info("equipped/carry: {} / {} | inv: {}", equipped, carry, inventoryWeight);
+
+    return equipped > carry;
+}
 
 void InstallHooks()
 {
-    // HookUtils::WriteVFunc<RE::PlayerCharacter, 0, 0xad, PlayerUpdateHook>();
-    // HookUtils::WriteVFunc<RE::Character, 0, 0xad, NPCUpdateHook>();
+    auto target                = REL::Relocation<std::uintptr_t>{RELOCATION_ID(36457, 37453)};
+    IsOverEncumberedHook::func = SKSE::GetTrampoline().write_branch<5>(target.address(), IsOverEncumberedHook::Call);
 }
 } // namespace EXCO::HOOKS

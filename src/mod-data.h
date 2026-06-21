@@ -20,8 +20,8 @@ inline constexpr auto SETTING_NPCS   = "NPCS";
 
 namespace ENTRIES
 {
-// inline constexpr auto attackStam                 = "NormalAttackStamina";
-// inline constexpr RE::PerkEntryPoint attackStamEP = RE::PerkEntryPoint::kModPowerAttackStamina;
+inline constexpr auto maxCarryWeight                 = "MaxCarryWeight";
+inline constexpr RE::PerkEntryPoint maxCarryWeightEP = RE::PerkEntryPoint::kGetMaxCarryWeight;
 
 } // namespace ENTRIES
 
