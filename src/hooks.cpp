@@ -28,10 +28,9 @@ bool IsOverEncumberedHook::Call(RE::Actor* a_this)
     float carry           = a_this->GetActorValue(RE::ActorValue::kCarryWeight);
     RE::BGSEntryPoint::HandleEntryPoint(ENTRIES::maxCarryWeightEP, a_this, &carry);
 
-    logs::info("equipped/carry: {} / {} | inv: {}", equipped, carry, inventoryWeight);
+    // logs::info("equipped/carry: {} / {} | inv: {}", equipped, carry, inventoryWeight);
 
     return equipped > carry;
-    // return false;
 }
 bool CanRunHook::Call(RE::Actor* a_this)
 {
@@ -39,6 +38,21 @@ bool CanRunHook::Call(RE::Actor* a_this)
         return false;
 
     return !IsOverEncumberedHook::Call(a_this);
+}
+
+void PlayerUpdateHook::Call(RE::PlayerCharacter* a_this, float a_deltaTime)
+{
+    func(a_this, a_deltaTime);
+}
+
+void PlayerMovementEncumberanceCheckHook::Call(RE::PlayerCharacter* a_this, void* unused, float previousWeight, float weightDelta)
+{
+    return;
+}
+
+float HUDEncumberanceUseEquippedWeight::Call(void* self, uint32_t, float, float)
+{
+    return 0.0f;
 }
 
 void InstallHooks()
@@ -50,5 +64,31 @@ void InstallHooks()
 
     target           = REL::Relocation<std::uintptr_t>{RELOCATION_ID(null, 37235)};
     CanRunHook::func = SKSE::GetTrampoline().write_branch<5>(target.address(), CanRunHook::Call);
+
+    // target = REL::Relocation<std::uintptr_t>{RELOCATION_ID(null, 38490), OFFSET(null, 0x61)};
+    // REL::make_pattern<"FF">().match_or_fail(target.address());
+    // HookUtils::WriteCall5<HUDEncumberanceUseEquippedWeight>(RELOCATION_ID(null, 38490), OFFSET(null, 0x61));
+
+    target = REL::Relocation<std::uintptr_t>(RELOCATION_ID(null, 38490), OFFSET(null, 0x61));
+    // return site
+    EncumbranceFactorHook_Code code(target.address());
+
+    auto& trampoline = SKSE::GetTrampoline();
+    void* mem        = trampoline.allocate(code.getSize());
+    std::memcpy(mem, code.getCode(), code.getSize());
+    // trampoline.write_call<5>(target.address(), mem);
+    trampoline.write_branch<6>(target.address(), mem);
+
+    // target                                    = REL::Relocation<std::uintptr_t>{RELOCATION_ID(null, 38490)}; // obtained from offset.txt
+    // PlayerMovementEncumberanceCheckHook::func = SKSE::GetTrampoline().write_branch<5>(target.address(), PlayerMovementEncumberanceCheckHook::Call);
+    // HookUtils::WriteVFunc<RE::ActorValueOwner, 0, 1, GetActorValueHook>();
+
+    // HookUtils::WriteVFunc<RE::PlayerCharacter, 1, 0x1, HUDEncumberanceUseEquippedWeight>();
+
+    // HookUtils::WriteCall5<PlayerMovementEncumberanceCheckHook>(RELOCATION_ID(null, 38490), OFFSET(null, 0x5C));
+    // target                                    = REL::Relocation<std::uintptr_t>{RELOCATION_ID(null, 38490), OFFSET(null, 61)};
+    // PlayerMovementEncumberanceCheckHook::func = SKSE::GetTrampoline().write_branch<5>(target.address(), HUDEncumberanceUseEquippedWeight::Call);
+
+    // HookUtils::WriteVFunc<RE::PlayerCharacter, 0, 0xad, PlayerUpdateHook>();
 }
 } // namespace EXCO::HOOKS
