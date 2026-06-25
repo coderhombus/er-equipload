@@ -45,14 +45,33 @@ void PlayerUpdateHook::Call(RE::PlayerCharacter* a_this, float a_deltaTime)
     func(a_this, a_deltaTime);
 }
 
-void PlayerMovementEncumberanceCheckHook::Call(RE::PlayerCharacter* a_this, void* unused, float previousWeight, float weightDelta)
+void PlayerHUDEncumberance::Call(RE::Actor* actor, float param2, float param3, float param4)
 {
+    logs::info("hooked here 12");
     return;
+    // func(actor, param2, param3, param4);
 }
 
-float HUDEncumberanceUseEquippedWeight::Call(void* self, uint32_t, float, float)
+
+float GetActorValue::Call(RE::Actor* actor, RE::ActorValue av)
 {
-    return 0.0f;
+    // logs::info("hooked here 1");
+    if (actor->IsPlayerRef() && av == RE::ActorValue::kInventoryWeight)
+    {
+        logs::info("hooked here 2");
+    }
+    // return 0.0f;
+    return func(actor, av);
+}
+
+float GetActorValue2::Call(RE::Actor* actor, RE::ActorValue av, std::uint64_t vmArg, double* result)
+{
+    logs::info("hooked here 1");
+    if (actor->IsPlayerRef() && av == RE::ActorValue::kInventoryWeight)
+    {
+        logs::info("hooked here 2");
+    }
+    return func(actor, av, vmArg, result);
 }
 
 void InstallHooks()
@@ -65,29 +84,19 @@ void InstallHooks()
     target           = REL::Relocation<std::uintptr_t>{RELOCATION_ID(null, 37235)};
     CanRunHook::func = SKSE::GetTrampoline().write_branch<5>(target.address(), CanRunHook::Call);
 
-    // target = REL::Relocation<std::uintptr_t>{RELOCATION_ID(null, 38490), OFFSET(null, 0x61)};
-    // REL::make_pattern<"FF">().match_or_fail(target.address());
-    // HookUtils::WriteCall5<HUDEncumberanceUseEquippedWeight>(RELOCATION_ID(null, 38490), OFFSET(null, 0x61));
+    // 24774
+    // target              = REL::Relocation<std::uintptr_t>{RELOCATION_ID(null, 24380)}; // TESBaseActor
+    // GetActorValue::func = SKSE::GetTrampoline().write_branch<5>(target.address(), GetActorValue::Call);
+    // target              = REL::Relocation<std::uin tptr_t>{RELOCATION_ID(null, 24774)}; // TESActorNPC
+    // GetActorValue::func = SKSE::GetTrampoline().write_branch<5>(target.address(), GetActorValue::Call);
+    // target               = REL::Relocation<std::uintptr_t>{RELOCATION_ID(20966, 21416)}; // GameFunc::native::GetActorValue
+    // GetActorValue2::func = SKSE::GetTrampoline().write_branch<5>(target.address(), GetActorValue2::Call);
 
-    target = REL::Relocation<std::uintptr_t>(RELOCATION_ID(null, 38490), OFFSET(null, 0x61));
-    // return site
-    EncumbranceFactorHook_Code code(target.address());
 
-    auto& trampoline = SKSE::GetTrampoline();
-    void* mem        = trampoline.allocate(code.getSize());
-    std::memcpy(mem, code.getCode(), code.getSize());
-    // trampoline.write_call<5>(target.address(), mem);
-    trampoline.write_branch<6>(target.address(), mem);
-
-    // target                                    = REL::Relocation<std::uintptr_t>{RELOCATION_ID(null, 38490)}; // obtained from offset.txt
-    // PlayerMovementEncumberanceCheckHook::func = SKSE::GetTrampoline().write_branch<5>(target.address(), PlayerMovementEncumberanceCheckHook::Call);
-    // HookUtils::WriteVFunc<RE::ActorValueOwner, 0, 1, GetActorValueHook>();
-
-    // HookUtils::WriteVFunc<RE::PlayerCharacter, 1, 0x1, HUDEncumberanceUseEquippedWeight>();
-
-    // HookUtils::WriteCall5<PlayerMovementEncumberanceCheckHook>(RELOCATION_ID(null, 38490), OFFSET(null, 0x5C));
-    // target                                    = REL::Relocation<std::uintptr_t>{RELOCATION_ID(null, 38490), OFFSET(null, 61)};
-    // PlayerMovementEncumberanceCheckHook::func = SKSE::GetTrampoline().write_branch<5>(target.address(), HUDEncumberanceUseEquippedWeight::Call);
+    // target                      = REL::Relocation<std::uintptr_t>{RELOCATION_ID(null, 38490)};
+    // PlayerHUDEncumberance::func = SKSE::GetTrampoline().write_branch<5>(target.address(), PlayerHUDEncumberance::Call);
+    // target                       = REL::Relocation<std::uintptr_t>{RELOCATION_ID(null, 40537)};
+    // PlayerHUDEncumberance2::func = SKSE::GetTrampoline().write_branch<5>(target.address(), PlayerHUDEncumberance2::Call);
 
     // HookUtils::WriteVFunc<RE::PlayerCharacter, 0, 0xad, PlayerUpdateHook>();
 }
