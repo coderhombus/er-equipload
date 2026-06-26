@@ -28,22 +28,17 @@ struct PlayerUpdateHook
     static inline REL::Relocation<decltype(Call)> func;
 };
 
-struct PlayerHUDEncumberance
+struct GetWeightInContainerHook
 {
-    static void __fastcall Call(RE::Actor* actor, float param2, float param3, float param4);
+    static float Call(RE::TESObjectREFR* a_this);
+    static inline REL::Relocation<decltype(Call)> func;
+};
+struct GetWeightInContainerHook2
+{
+    static float Call(RE::TESObjectREFR* a_this);
     static inline REL::Relocation<decltype(Call)> func;
 };
 
-struct GetActorValue
-{
-    static float Call(RE::Actor* actor, RE::ActorValue av);
-    static inline REL::Relocation<decltype(Call)> func;
-};
-struct GetActorValue2
-{
-    static float Call(RE::Actor* actor, RE::ActorValue av, std::uint64_t vmArg, double* result);
-    static inline REL::Relocation<decltype(Call)> func;
-};
 
 } // namespace HOOKS
 } // namespace EXCO

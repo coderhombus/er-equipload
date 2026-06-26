@@ -4,6 +4,7 @@
 #include "RE/A/ActorMagicCaster.h"
 #include "RE/B/BGSAttackData.h"
 #include "RE/C/Character.h"
+#include "RE/E/ExtraDataList.h"
 #include "RE/P/PlayerCharacter.h"
 #include "REL/Offset.h"
 #include "SKSE/Impl/PCH.h"
@@ -45,34 +46,70 @@ void PlayerUpdateHook::Call(RE::PlayerCharacter* a_this, float a_deltaTime)
     func(a_this, a_deltaTime);
 }
 
-void PlayerHUDEncumberance::Call(RE::Actor* actor, float param2, float param3, float param4)
+// patch equippedweight for armor perks too
+// float GetWeightInContainerHook::Call(RE::TESObjectREFR* a_this)
+// {
+//     logs::info("GetWeightInContainer called: {:X}", (uintptr_t)a_this);
+//     return 0.0f;
+// }
+float GetWeightInContainerHook2::Call(RE::TESObjectREFR* a_this)
 {
-    logs::info("hooked here 12");
-    return;
-    // func(actor, param2, param3, param4);
-}
 
+    // a_this->GetActorOwner()
 
-float GetActorValue::Call(RE::Actor* actor, RE::ActorValue av)
-{
-    // logs::info("hooked here 1");
-    if (actor->IsPlayerRef() && av == RE::ActorValue::kInventoryWeight)
+    // RE::Actor* a_actor;
+    // if (const auto player = RE::PlayerCharacter::GetSingleton())
+    // {
+    //     logs::info("weight: {}", player->GetEquippedWeight());
+    //     return player->GetEquippedWeight();
+    // }
+    // const auto player = RE::PlayerCharacter::GetSingleton();
+    RE::TESBoundObject* baseObj = a_this->data.objectReference;
+    if (baseObj)
     {
-        logs::info("hooked here 2");
+        return func(a_this);
+        RE::TESContainer* container = nullptr;
+
+        switch (baseObj->formType.get())
+        {
+            case RE::FormType::NPC:
+                container = reinterpret_cast<RE::TESContainer*>(reinterpret_cast<uintptr_t>(baseObj) + 0x30);
+                break;
+
+            case RE::FormType::LeveledNPC:
+                container = reinterpret_cast<RE::TESContainer*>(reinterpret_cast<uintptr_t>(baseObj) + 0x88);
+                break;
+
+            default:
+                break;
+        }
+        if (container)
+        {
+            logs::info("name: {}", baseObj->GetName());
+        }
     }
-    // return 0.0f;
-    return func(actor, av);
+
+    return func(a_this);
+    if (!a_this)
+    {
+        return func(a_this);
+    }
+
+    // if (a_this->GetActorOwner()->GetIsPlayerOwner())
+    // {
+    //     return RE::PlayerCharacter::GetSingleton()->GetEquippedWeight();
+    // }
+
+    auto* invChanges = a_this->GetInventoryChanges();
+    if (!invChanges)
+        return func(a_this);
+
+    float temp = (float)invChanges->GetInventoryWeight();
+
+
+    return temp;
 }
 
-float GetActorValue2::Call(RE::Actor* actor, RE::ActorValue av, std::uint64_t vmArg, double* result)
-{
-    logs::info("hooked here 1");
-    if (actor->IsPlayerRef() && av == RE::ActorValue::kInventoryWeight)
-    {
-        logs::info("hooked here 2");
-    }
-    return func(actor, av, vmArg, result);
-}
 
 void InstallHooks()
 {
@@ -84,19 +121,14 @@ void InstallHooks()
     target           = REL::Relocation<std::uintptr_t>{RELOCATION_ID(null, 37235)};
     CanRunHook::func = SKSE::GetTrampoline().write_branch<5>(target.address(), CanRunHook::Call);
 
-    // 24774
-    // target              = REL::Relocation<std::uintptr_t>{RELOCATION_ID(null, 24380)}; // TESBaseActor
-    // GetActorValue::func = SKSE::GetTrampoline().write_branch<5>(target.address(), GetActorValue::Call);
-    // target              = REL::Relocation<std::uin tptr_t>{RELOCATION_ID(null, 24774)}; // TESActorNPC
-    // GetActorValue::func = SKSE::GetTrampoline().write_branch<5>(target.address(), GetActorValue::Call);
-    // target               = REL::Relocation<std::uintptr_t>{RELOCATION_ID(20966, 21416)}; // GameFunc::native::GetActorValue
-    // GetActorValue2::func = SKSE::GetTrampoline().write_branch<5>(target.address(), GetActorValue2::Call);
+    // target           = REL::Relocation<std::uintptr_t>{RELOCATION_ID(null, 14528)};
+    // CanRunHook::func = SKSE::GetTrampoline().write_branch<5>(target.address(), CanRunHook::Call);
 
+    // target                         = REL::Relocation<std::uintptr_t>{RELOCATION_ID(19277, 19703)};
+    // GetWeightInContainerHook::func = SKSE::GetTrampoline().write_branch<5>(target.address(), GetWeightInContainerHook::Call);
 
-    // target                      = REL::Relocation<std::uintptr_t>{RELOCATION_ID(null, 38490)};
-    // PlayerHUDEncumberance::func = SKSE::GetTrampoline().write_branch<5>(target.address(), PlayerHUDEncumberance::Call);
-    // target                       = REL::Relocation<std::uintptr_t>{RELOCATION_ID(null, 40537)};
-    // PlayerHUDEncumberance2::func = SKSE::GetTrampoline().write_branch<5>(target.address(), PlayerHUDEncumberance2::Call);
+    // (1402e216e - 1402e2120)
+    HookUtils::WriteCall5<GetWeightInContainerHook2>(RELOCATION_ID(19277, 19703), OFFSET(0x0, 0x4E));
 
     // HookUtils::WriteVFunc<RE::PlayerCharacter, 0, 0xad, PlayerUpdateHook>();
 }
