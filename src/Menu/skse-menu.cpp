@@ -61,6 +61,7 @@ void SKSEMenu::DrawPlayerSection()
     UIUtil::GreenTitleText("Config for Player");
     // UIUtil::SetSliderFloat(LAB::player_attack_cost.c_str(), VAR::player_attack_cost, CONFIG::player_attack_cost, 0.0,
     //                        50.0, TOOL::player_attack_cost.c_str());
+    UIUtil::SetCheckbox(LAB::player_enable_mod.c_str(), VAR::player_enable_mod, CONFIG::player_enable_mod, TOOL::player_enable_mod.c_str());
 }
 void SKSEMenu::DrawResetMenuSection()
 {

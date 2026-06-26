@@ -41,8 +41,6 @@ void FMenu::ModITool::DrawNPCs()
     FUCKUtil::GreenTitleText("Config for NPCs", 5);
     FUCK::Indent();
 
-    // FUCKUtil::SetSliderFloat(LAB::npc_attack_cost.c_str(), VAR::npc_attack_cost, CONFIG::npc_attack_cost, 0.0, 50.0,
-    //  TOOL::npc_attack_cost.c_str());
 
     FUCK::Unindent();
 };
@@ -53,9 +51,7 @@ void FMenu::ModITool::DrawPlayer()
     FUCKUtil::GreenTitleText("Config for Player", 5);
     FUCK::Indent();
 
-    // FUCKUtil::SetSliderFloat(LAB::player_attack_cost.c_str(), VAR::player_attack_cost, CONFIG::player_attack_cost,
-    // 0.0,
-    //                          50.0, TOOL::player_attack_cost.c_str());
+    FUCKUtil::Checkbox(LAB::player_enable_mod.c_str(), VAR::player_enable_mod, CONFIG::player_enable_mod, TOOL::player_enable_mod.c_str());
 
     FUCK::Unindent();
 }

@@ -11,7 +11,7 @@ void EXCO::MENU::SHARED::LoadFromConfig()
     // npc_attack_cost = CONFIG::stamina_cost_attack_npc.GetValue();
 
     // player
-    // player_attack_cost = CONFIG::stamina_cost_attack_player.GetValue();
+    player_enable_mod = CONFIG::player_enable_mod.GetValue();
 }
 
 void EXCO::MENU::SHARED::RestoreDefaults()
@@ -25,6 +25,7 @@ void EXCO::MENU::SHARED::RestoreDefaults()
 
     // player
     // player_attack_cost = 10.F;
+    player_enable_mod = true;
 
     // ---------------------------------------------------------------
 
@@ -32,7 +33,7 @@ void EXCO::MENU::SHARED::RestoreDefaults()
     // CONFIG::npc_attack_cost.SetValue(npc_attack_cost);
 
     // player
-    // CONFIG::player_attack_cost.SetValue(player_attack_cost);
+    CONFIG::player_enable_mod.SetValue(true);
 
     CONFIG::UpdateSettings(true);
 }

@@ -4,7 +4,8 @@
 
 namespace EXCO::CONFIG
 {
-// inline REX::TOML::F32 npc_attack_cost{STAM_NPC, "fNPCStaminaCostAttack", 10.F};
+inline REX::TOML::Bool player_enable_mod{MOD_PL, "bPlayerEquippedWeightOnly", true};
+
 // inline REX::TOML::F32 player_attack_cost{STAM_PL, "fPlayerStaminaCostAttack", 10.F};
 
 void UpdateSettings(bool a_save = false);

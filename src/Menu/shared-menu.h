@@ -29,7 +29,7 @@ namespace LAB
 // inline std::string npc_attack_cost = "Attack Cost##npc";
 
 // Player
-// inline std::string player_attack_cost = "Attack Cost##player";
+inline std::string player_enable_mod = "Enable Mod##player";
 
 } // namespace LAB
 
@@ -41,7 +41,7 @@ namespace TOOL
 // inline std::string npc_attack_cost = "Stamina cost for normal attacks";
 
 // Player
-// inline std::string player_attack_cost = "Stamina Cost for normal attacks";
+inline std::string player_enable_mod = "Only count equipped item for player weight";
 } // namespace TOOL
 
 namespace VAR
@@ -49,7 +49,7 @@ namespace VAR
 
 // inline float npc_attack_cost{};
 
-// inline float player_attack_cost{};
+inline bool player_enable_mod{};
 
 } // namespace VAR
 
