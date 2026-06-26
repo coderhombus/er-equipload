@@ -5,9 +5,11 @@
 #include "RE/B/BGSAttackData.h"
 #include "RE/C/Character.h"
 #include "RE/E/ExtraDataList.h"
+#include "RE/F/FormTypes.h"
 #include "RE/P/PlayerCharacter.h"
 #include "REL/Offset.h"
 #include "SKSE/Impl/PCH.h"
+#include "SKSE/Logger.h"
 #include "Utility/util.h"
 #include "manager.h"
 #include "mod-data.h"
@@ -54,60 +56,51 @@ void PlayerUpdateHook::Call(RE::PlayerCharacter* a_this, float a_deltaTime)
 // }
 float GetWeightInContainerHook2::Call(RE::TESObjectREFR* a_this)
 {
-
-    // a_this->GetActorOwner()
-
-    // RE::Actor* a_actor;
-    // if (const auto player = RE::PlayerCharacter::GetSingleton())
-    // {
-    //     logs::info("weight: {}", player->GetEquippedWeight());
-    //     return player->GetEquippedWeight();
-    // }
-    // const auto player = RE::PlayerCharacter::GetSingleton();
-    RE::TESBoundObject* baseObj = a_this->data.objectReference;
-    if (baseObj)
+    if (a_this)
     {
-        return func(a_this);
-        RE::TESContainer* container = nullptr;
+        logs::info("-----------------------------------");
+        RE::FormType a = a_this->GetFormType();
+        // logs::info("a FormType: {} ({})", FormTypeToString(a), static_cast<std::uint32_t>(a));
 
-        switch (baseObj->formType.get())
+        // logs::info("Is extraList:");
+        RE::TESBoundObject* baseObj = a_this->data.objectReference;
+        if (baseObj)
         {
-            case RE::FormType::NPC:
-                container = reinterpret_cast<RE::TESContainer*>(reinterpret_cast<uintptr_t>(baseObj) + 0x30);
-                break;
-
-            case RE::FormType::LeveledNPC:
-                container = reinterpret_cast<RE::TESContainer*>(reinterpret_cast<uintptr_t>(baseObj) + 0x88);
-                break;
-
-            default:
-                break;
+            auto f = a_this->extraList.GetDisplayName(baseObj);
+            if (f)
+            {
+                // logs::info("name: {}", f);
+                // auto f1 = f->GetFormType();
+                // logs::info("f FormType: {} ({})", FormTypeToString(f1), static_cast<std::uint32_t>(f1));
+            }
         }
-        if (container)
+
+        logs::info("this = {:X}, type = {}, id = {:08X}", reinterpret_cast<uintptr_t>(a_this), static_cast<std::uint32_t>(a_this->GetFormType()),
+                   a_this->GetFormID());
+
+        auto* player = RE::PlayerCharacter::GetSingleton();
+        logs::info("player = {:X}", reinterpret_cast<uintptr_t>(player));
+
+
+        logs::info("{} {:08X}", a_this->GetName(), a_this->GetFormID());
+
+        if (auto actor = a_this->As<RE::Actor>())
         {
-            logs::info("name: {}", baseObj->GetName());
+            logs::info("actor");
+        }
+
+        if (a_this == RE::PlayerCharacter::GetSingleton())
+        {
+            logs::info("PLAYER");
+        }
+
+        if (a_this == RE::PlayerCharacter::GetSingleton())
+        {
+            logs::info("is player");
         }
     }
 
     return func(a_this);
-    if (!a_this)
-    {
-        return func(a_this);
-    }
-
-    // if (a_this->GetActorOwner()->GetIsPlayerOwner())
-    // {
-    //     return RE::PlayerCharacter::GetSingleton()->GetEquippedWeight();
-    // }
-
-    auto* invChanges = a_this->GetInventoryChanges();
-    if (!invChanges)
-        return func(a_this);
-
-    float temp = (float)invChanges->GetInventoryWeight();
-
-
-    return temp;
 }
 
 
