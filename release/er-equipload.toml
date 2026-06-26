@@ -2,5 +2,4 @@
 # fNPCStaminaCostAttack = 10.0
 
 [er-equipload.Player]
-# fPlayerStaminaCostAttack = 10.0
-
+bPlayerEquippedWeightOnly = true

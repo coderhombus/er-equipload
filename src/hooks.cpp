@@ -40,10 +40,11 @@ bool IsOverEncumberedHook::Call(RE::Actor* a_this)
 }
 bool CanRunHook::Call(RE::Actor* a_this)
 {
-
     if (a_this->currentProcess && a_this->IsStaggered())
         return false;
 
+    // if (ActorUtil::IsGod(a_this) || a_this->IsOnMount())
+    //     return true;
     return !IsOverEncumberedHook::Call(a_this);
 }
 
