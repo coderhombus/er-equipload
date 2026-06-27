@@ -13,7 +13,6 @@
 #include "SKSE/Logger.h"
 #include "Utility/util.h"
 #include "config.h"
-#include "manager.h"
 #include "mod-data.h"
 #include "st-hooks.h"
 
@@ -61,7 +60,6 @@ float GetWeightInContainerHook2::Call(RE::TESObjectREFR* a_this)
 
     return func(a_this);
 }
-
 
 void InstallHooks()
 {

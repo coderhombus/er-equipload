@@ -27,7 +27,6 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
     EXCO::HOOKS::InstallHooks();
 
     EXCO::CONFIG::UpdateSettings(false);
-    EXCO::SKSEMenu::RegisterSKSEMenu();
     SKSE::GetMessagingInterface()->RegisterListener(Listener);
 
     return true;

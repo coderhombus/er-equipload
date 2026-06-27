@@ -11,16 +11,11 @@ namespace EXCO::CONFIG
 {
 void UpdateSettings(const bool a_save)
 {
-    logs::info("UpdateSettings 1");
-
     const auto toml = REX::Singleton<REX::TOML::SettingStore>::GetSingleton();
-    logs::info("UpdateSettings 2");
     toml->Init(TOML_DEFAULT, TOML_CUSTOM);
     if (!a_save)
         toml->Load();
     else
         toml->Save();
-
-    logs::info("UpdateSettings 3");
 }
 } // namespace EXCO::CONFIG
