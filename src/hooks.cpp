@@ -52,6 +52,8 @@ float GetWeightInContainerHook2::Call(RE::TESObjectREFR* a_this)
 {
     if (a_this)
     {
+        // TODO: only run this if this relates to the player
+        // TODO: check armor weight reduction perks dont reset this
         auto* player = RE::PlayerCharacter::GetSingleton();
         float w      = player->GetEquippedWeight();
         SKSE::GetTaskInterface()->AddTask([player, w]() { player->SetActorValue(RE::ActorValue::kInventoryWeight, w); });
