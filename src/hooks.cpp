@@ -2,11 +2,14 @@
 
 #include "RE/A/Actor.h"
 #include "RE/A/ActorMagicCaster.h"
+#include "RE/A/ActorState.h"
+#include "RE/A/ActorValueOwner.h"
 #include "RE/A/ActorValues.h"
 #include "RE/B/BGSAttackData.h"
 #include "RE/C/Character.h"
 #include "RE/E/ExtraDataList.h"
 #include "RE/F/FormTypes.h"
+#include "RE/I/InventoryEntryData.h"
 #include "RE/P/PlayerCharacter.h"
 #include "REL/Offset.h"
 #include "SKSE/Impl/PCH.h"
@@ -19,6 +22,11 @@
 
 namespace EXCO::HOOKS
 {
+
+#ifdef GetObject
+#undef GetObject
+#endif
+
 bool IsOverEncumberedHook::Call(RE::Actor* a_this)
 {
 
@@ -35,6 +43,21 @@ bool IsOverEncumberedHook::Call(RE::Actor* a_this)
 
     // logs::info("equipped/carry: {} / {} | inv: {}", equipped, carry, inventoryWeight);
 
+    // {
+
+    //     auto* player = a_this; // RE::PlayerCharacter::GetSingleton();
+    //     auto** vtbl  = *reinterpret_cast<std::uintptr_t***>(player);
+
+    //     logs::info("player vtable: {:X}", reinterpret_cast<std::uintptr_t>(vtbl));
+    //     logs::info("slot 0x121: {:X}", reinterpret_cast<std::uintptr_t>(vtbl[0x121]));
+    //     logs::info("RE::VTABLE_Actor[0]: {:X}", RE::VTABLE_Actor[0].address());
+
+    //     auto** runtimeVtable = *reinterpret_cast<std::uintptr_t***>(player);
+    //     for (std::size_t i = 0; i < std::size(RE::VTABLE_Actor); ++i)
+    //     {
+    //         logs::info("Actor vtable[{}]: {:X}", i, RE::VTABLE_Actor[i].address());
+    //     }
+    // }
     return equipped > carry;
 }
 bool CanRunHook::Call(RE::Actor* a_this)
@@ -47,8 +70,28 @@ bool CanRunHook::Call(RE::Actor* a_this)
     return !IsOverEncumberedHook::Call(a_this);
 }
 
+void SendActorValueUpdateHook::Call(RE::Actor* actor, RE::ActorValue av, RE::ACTOR_VALUE_MODIFIERS flag, float delta, void* extra = nullptr)
+{
+    logs::info("hooked");
+    return func(actor, av, flag, delta, extra);
+}
 
-float GetWeightInContainerHook2::Call(RE::TESObjectREFR* a_this)
+void PlayerUpdateHook::Call(RE::PlayerCharacter* a_this, float a_deltaTime)
+{
+    // auto state = RE::PlayerCharacter::GetSingleton()->GetLifeState();
+    // if (state == RE::ACTOR_LIFE_STATE::kDead)
+    // {
+    //     logs::info("player is dead");
+    // }
+    // else
+    // {
+    //     logs::info("player is not dead: {}", (int)state);
+    // }
+    return func(a_this, a_deltaTime);
+}
+
+float EXCO::HOOKS::GetWeightInContainerHook::prev_weight = 0.0f;
+float GetWeightInContainerHook::Call(RE::TESObjectREFR* a_this)
 {
     if (a_this)
     {
@@ -56,11 +99,38 @@ float GetWeightInContainerHook2::Call(RE::TESObjectREFR* a_this)
         // TODO: check armor weight reduction perks dont reset this
         auto* player = RE::PlayerCharacter::GetSingleton();
         float w      = player->GetEquippedWeight();
+        // logs::info("float: {}", w);
+        // float difference = 0.0;
+        // if (w != prev_weight)
+        // {
+        //     logs::info("------------");
+        //     difference = w - prev_weight;
+        //     logs::info("weight: {}, prev: {}, difference: {}", w, prev_weight, difference);
+        //     prev_weight = w;
+        //     if (difference > 0)
+        //     {
+        //         // player->RestoreActorValue(RE::ActorValue::kInventoryWeight, difference);
+        //     }
+        //     else
+        //     {
+        //         // player->DamageActorValue(RE::ActorValue::kInventoryWeight, difference);
+        //     }
+        //     logs::info("inventory weight current: {}", player->GetActorValue(RE::ActorValue::kInventoryWeight));
+        // }
         SKSE::GetTaskInterface()->AddTask([player, w]() { player->SetActorValue(RE::ActorValue::kInventoryWeight, w); });
         return w;
     }
 
+
     return func(a_this);
+}
+
+// void WornArmorChangedHook::Call(RE::PlayerCharacter* a_player)
+// void WornArmorChangedHook::Call(RE::Actor* a_actor, void* a_arg)
+void WornArmorChangedHook::Call(RE::PlayerCharacter* a_actor, void* a_arg)
+{
+    logs::info("nice");
+    return func(a_actor, a_arg);
 }
 
 void InstallHooks()
@@ -70,9 +140,17 @@ void InstallHooks()
     auto target                = REL::Relocation<std::uintptr_t>{RELOCATION_ID(36457, 37453)};
     IsOverEncumberedHook::func = SKSE::GetTrampoline().write_branch<5>(target.address(), IsOverEncumberedHook::Call);
 
-    target           = REL::Relocation<std::uintptr_t>{RELOCATION_ID(null, 37235)};
+    target           = REL::Relocation<std::uintptr_t>{RELOCATION_ID(NULL, 37235)};
     CanRunHook::func = SKSE::GetTrampoline().write_branch<5>(target.address(), CanRunHook::Call);
 
-    HookUtils::WriteCall5<GetWeightInContainerHook2>(RELOCATION_ID(19277, 19703), OFFSET(0x0, 0x4E));
+    HookUtils::WriteVFunc<RE::Actor, 0, 0x121, WornArmorChangedHook>();
+
+
+    HookUtils::WriteVFunc<RE::PlayerCharacter, 0, 0x908, WornArmorChangedHook>();
+    // HookUtils::WriteVFunc<RE::PlayerCharacter, 6, 0xad, PlayerUpdateHook>();
+
+    HookUtils::WriteCall5<SendActorValueUpdateHook>(RELOCATION_ID(null, 38470), OFFSET(0x0, 0x0));
+    HookUtils::WriteCall5<GetWeightInContainerHook>(RELOCATION_ID(19277, 19703), OFFSET(0x0, 0x4E));
+    // HookUtils::WriteCall5<GetWeightInContainerHook2>(RELOCATION_ID(19277, 19703), OFFSET(0x0, 0x4E));
 }
 } // namespace EXCO::HOOKS

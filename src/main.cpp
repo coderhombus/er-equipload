@@ -1,5 +1,4 @@
 #include "Menu/ingame-menu.h"
-#include "Menu/skse-menu.h"
 #include "SKSE/API.h"
 #include "Utility/util.h"
 #include "config.h"
