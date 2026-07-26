@@ -2,6 +2,7 @@
 #include "SKSE/API.h"
 #include "Utility/util.h"
 #include "config.h"
+#include "events.cpp"
 #include "hooks.h"
 
 void Listener(SKSE::MessagingInterface::Message* a_msg)
@@ -12,6 +13,13 @@ void Listener(SKSE::MessagingInterface::Message* a_msg)
 
             // EXCO::Util::LookupStaminaCostGlobal();
             EXCO::FMenu::RegisterFMenu();
+            break;
+        case SKSE::MessagingInterface::kPostLoad:
+            if (const auto scripts = RE::ScriptEventSourceHolder::GetSingleton())
+            {
+                scripts->PrependEventSink<RE::TESEquipEvent>(EXCO::PCManager::GetSingleton());
+                logs::info("\t\tRegistered for {}", typeid(RE::TESEquipEvent).name());
+            }
             break;
         default:
             break;

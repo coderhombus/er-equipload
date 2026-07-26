@@ -69,13 +69,6 @@ bool CanRunHook::Call(RE::Actor* a_this)
     //     return true;
     return !IsOverEncumberedHook::Call(a_this);
 }
-
-void SendActorValueUpdateHook::Call(RE::Actor* actor, RE::ActorValue av, RE::ACTOR_VALUE_MODIFIERS flag, float delta, void* extra = nullptr)
-{
-    logs::info("hooked");
-    return func(actor, av, flag, delta, extra);
-}
-
 void PlayerUpdateHook::Call(RE::PlayerCharacter* a_this, float a_deltaTime)
 {
     // auto state = RE::PlayerCharacter::GetSingleton()->GetLifeState();
@@ -117,20 +110,13 @@ float GetWeightInContainerHook::Call(RE::TESObjectREFR* a_this)
         //     }
         //     logs::info("inventory weight current: {}", player->GetActorValue(RE::ActorValue::kInventoryWeight));
         // }
-        SKSE::GetTaskInterface()->AddTask([player, w]() { player->SetActorValue(RE::ActorValue::kInventoryWeight, w); });
+        // SKSE::GetTaskInterface()->AddTask([player, w]() { player->SetActorValue(RE::ActorValue::kInventoryWeight, w); });
+        logs::info("GetWeightInContainerHook:m {}", w);
         return w;
     }
 
 
     return func(a_this);
-}
-
-// void WornArmorChangedHook::Call(RE::PlayerCharacter* a_player)
-// void WornArmorChangedHook::Call(RE::Actor* a_actor, void* a_arg)
-void WornArmorChangedHook::Call(RE::PlayerCharacter* a_actor, void* a_arg)
-{
-    logs::info("nice");
-    return func(a_actor, a_arg);
 }
 
 void InstallHooks()
@@ -143,14 +129,7 @@ void InstallHooks()
     target           = REL::Relocation<std::uintptr_t>{RELOCATION_ID(NULL, 37235)};
     CanRunHook::func = SKSE::GetTrampoline().write_branch<5>(target.address(), CanRunHook::Call);
 
-    HookUtils::WriteVFunc<RE::Actor, 0, 0x121, WornArmorChangedHook>();
-
-
-    HookUtils::WriteVFunc<RE::PlayerCharacter, 0, 0x908, WornArmorChangedHook>();
-    // HookUtils::WriteVFunc<RE::PlayerCharacter, 6, 0xad, PlayerUpdateHook>();
-
-    HookUtils::WriteCall5<SendActorValueUpdateHook>(RELOCATION_ID(null, 38470), OFFSET(0x0, 0x0));
+    HookUtils::WriteVFunc<RE::PlayerCharacter, 6, 0xad, PlayerUpdateHook>();
     HookUtils::WriteCall5<GetWeightInContainerHook>(RELOCATION_ID(19277, 19703), OFFSET(0x0, 0x4E));
-    // HookUtils::WriteCall5<GetWeightInContainerHook2>(RELOCATION_ID(19277, 19703), OFFSET(0x0, 0x4E));
 }
 } // namespace EXCO::HOOKS
