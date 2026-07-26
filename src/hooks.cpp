@@ -69,10 +69,14 @@ float GetWeightInContainerHook::Call(RE::TESObjectREFR* a_this)
 {
     if (a_this)
     {
-        // TODO: only run this if this relates to the player
-        // TODO: check armor weight reduction perks dont reset this
+        // TODO: only run this if this relates to the player - TRUE
+        // logs::info("func(a_this): {}", func(a_this));
+
+        // TODO: check armor weight reduction perks dont reset this - TRUE
+
         auto* player = RE::PlayerCharacter::GetSingleton();
-        float w      = player->GetEquippedWeight();
+
+        float w = player->GetEquippedWeight();
         return w;
     }
     return func(a_this);
