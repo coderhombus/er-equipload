@@ -4,7 +4,7 @@
 #include "RE/T/TESBoundObject.h"
 #include "RE/T/TESEquipEvent.h"
 #include "RE/T/TESForm.h"
-
+#include "globals.h"
 namespace EXCO
 {
 
@@ -17,12 +17,6 @@ class PCManager : public RE::BSTEventSink<RE::TESEquipEvent>
         return &instance;
     }
 
-    // RE::BSEventNotifyControl ProcessEvent(const RE::TESEquipEvent* a_event, RE::BSTEventSource<RE::TESEquipEvent>*)
-    // {
-    //     if (!a_event)
-    //     {
-    //         return RE::BSEventNotifyControl::kContinue;
-    //     }
 
     RE::BSEventNotifyControl ProcessEvent(const RE::TESEquipEvent* a_event, RE::BSTEventSource<RE::TESEquipEvent>*)
     {
@@ -45,101 +39,18 @@ class PCManager : public RE::BSTEventSink<RE::TESEquipEvent>
             return RE::BSEventNotifyControl::kContinue;
         }
 
-        const bool equipped = a_event->equipped;
-        const auto itemID   = a_event->baseObject;
-
-        // SKSE::GetTaskInterface()->AddTask(
-        // [equipped, itemID]()
         {
-            auto* player = RE::PlayerCharacter::GetSingleton();
-            // if (!player)
-            // {
-            //     return;
-            // }
-
-            const float equippedWeight  = player->GetEquippedWeight();
-            const float inventoryWeight = player->GetActorValue(RE::ActorValue::kInventoryWeight);
-
-            auto total_w = player->GetInventoryChanges()->GetInventoryWeight();
-            logs::info("{} item {}, equipped weight: {}, invweight: {}, invchanges: {}", equipped ? "Equipped" : "Unequipped",
-                       RE::TESForm::LookupByID(itemID)->GetName(), equippedWeight, inventoryWeight, total_w);
-
-            player->SetActorValue(RE::ActorValue::kInventoryWeight, equippedWeight);
+            // const bool equipped = a_event->equipped;
+            // const auto itemID   = a_event->baseObject;
+            // auto* player = RE::PlayerCharacter::GetSingleton();
+            // const float equippedWeight  = player->GetEquippedWeight();
+            // const float inventoryWeight = player->GetActorValue(RE::ActorValue::kInventoryWeight);
+            // auto total_w = player->GetInventoryChanges()->GetInventoryWeight();
+            // logs::info("{} item {}, equipped weight: {}, invweight: {}, invchanges: {}", equipped ? "Equipped" : "Unequipped",
+            // RE::TESForm::LookupByID(itemID)->GetName(), equippedWeight, inventoryWeight, total_w);
         }
 
-        // ===================================================================================
-        {
-            // RE::ActorValue av = RE::ActorValue::kInventoryWeight;
-            // auto* avInfo      = RE::ActorValueList::GetSingleton()->GetActorValueInfo(av);
-
-            // std::uint32_t cacheIndex = avInfo->isNthAICachedCurrentValue;
-
-            // logs::info("InventoryWeight: flags = {:X}, cache index = {}", avInfo->flags.underlying(), avInfo->isNthAICachedCurrentValue);
-
-            auto* player = RE::PlayerCharacter::GetSingleton();
-            // if (!player)
-            // {
-            //     return RE::BSEventNotifyControl::kContinue;
-            // }
-
-            auto* avInfo = RE::ActorValueList::GetSingleton()->GetActorValueInfo(RE::ActorValue::kInventoryWeight);
-
-            if (!avInfo)
-            {
-                logs::info("failed avinfo");
-                return RE::BSEventNotifyControl::kContinue;
-            }
-
-            //===========================
-            {
-
-                auto computedBase = avInfo->computeBaseFunc(player, static_cast<std::uint32_t>(RE::ActorValue::kInventoryWeight));
-                logs::info("computed InventoryWeight = {}", computedBase);
-
-                // Address finder
-                auto base = reinterpret_cast<std::uintptr_t>(GetModuleHandleW(L"SkyrimSE.exe"));
-                auto func = reinterpret_cast<std::uintptr_t>(avInfo->computeBaseFunc);
-
-                // logs::info("Skyrim base = {:X}", base);
-                // logs::info("InventoryWeight computeBaseFunc = {:p}", reinterpret_cast<void*>(avInfo->computeBaseFunc));
-
-                auto address = reinterpret_cast<std::uintptr_t>(avInfo->computeBaseFunc);
-
-                auto* bytes = reinterpret_cast<const std::uint8_t*>(address);
-
-                logs::info("Bytes: {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X}", bytes[0], bytes[1], bytes[2], bytes[3], bytes[4],
-                           bytes[5], bytes[6], bytes[7]);
-                logs::info("computeBaseFunc = {:X}, base = {:X}, RVA = {:X}", func, base, func - base);
-            }
-            //===========================
-
-            if (!avInfo->flags.all(RE::ActorValueInfo::ActorValueFlag::kAIProcessCachesCurrentValue))
-            {
-                logs::info("failed avinfo flags");
-                return RE::BSEventNotifyControl::kContinue;
-            }
-
-            auto* process = player->currentProcess;
-            if (!process || !process->cachedValues)
-            {
-                logs::info("failed process");
-                return RE::BSEventNotifyControl::kContinue;
-            }
-
-            const auto index = avInfo->isNthAICachedCurrentValue;
-            auto& cache      = process->cachedValues->actorValueCache;
-
-            if (index >= cache.size())
-            {
-                logs::info("failed size");
-                return RE::BSEventNotifyControl::kContinue;
-            }
-
-            logs::info("cache[index].value: {}, invalid: {}", cache[index].value, cache[index].invalid);
-
-            // cache[index].value = newWeight;
-            // cache[index].invalid = false;
-        }
+        g_updatePending = true;
 
         return RE::BSEventNotifyControl::kContinue;
     }

@@ -11,7 +11,6 @@ void Listener(SKSE::MessagingInterface::Message* a_msg)
     {
         case SKSE::MessagingInterface::kDataLoaded:
 
-            // EXCO::Util::LookupStaminaCostGlobal();
             EXCO::FMenu::RegisterFMenu();
             break;
         case SKSE::MessagingInterface::kPostLoad:

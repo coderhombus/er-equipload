@@ -16,6 +16,7 @@
 #include "SKSE/Logger.h"
 #include "Utility/util.h"
 #include "config.h"
+#include "globals.h"
 #include "mod-data.h"
 #include "st-hooks.h"
 
@@ -36,30 +37,13 @@ bool IsOverEncumberedHook::Call(RE::Actor* a_this)
     if (ActorUtil::IsGod(a_this) || a_this->IsOnMount())
         return false;
 
-    // float inventoryWeight = a_this->GetActorValue(RE::ActorValue::kInventoryWeight);
     float equipped = a_this->GetEquippedWeight();
     float carry    = a_this->GetActorValue(RE::ActorValue::kCarryWeight);
     RE::BGSEntryPoint::HandleEntryPoint(ENTRIES::maxCarryWeightEP, a_this, &carry);
 
-    // logs::info("equipped/carry: {} / {} | inv: {}", equipped, carry, inventoryWeight);
-
-    // {
-
-    //     auto* player = a_this; // RE::PlayerCharacter::GetSingleton();
-    //     auto** vtbl  = *reinterpret_cast<std::uintptr_t***>(player);
-
-    //     logs::info("player vtable: {:X}", reinterpret_cast<std::uintptr_t>(vtbl));
-    //     logs::info("slot 0x121: {:X}", reinterpret_cast<std::uintptr_t>(vtbl[0x121]));
-    //     logs::info("RE::VTABLE_Actor[0]: {:X}", RE::VTABLE_Actor[0].address());
-
-    //     auto** runtimeVtable = *reinterpret_cast<std::uintptr_t***>(player);
-    //     for (std::size_t i = 0; i < std::size(RE::VTABLE_Actor); ++i)
-    //     {
-    //         logs::info("Actor vtable[{}]: {:X}", i, RE::VTABLE_Actor[i].address());
-    //     }
-    // }
     return equipped > carry;
 }
+
 bool CanRunHook::Call(RE::Actor* a_this)
 {
     if (a_this->currentProcess && a_this->IsStaggered())
@@ -69,17 +53,14 @@ bool CanRunHook::Call(RE::Actor* a_this)
     //     return true;
     return !IsOverEncumberedHook::Call(a_this);
 }
+
 void PlayerUpdateHook::Call(RE::PlayerCharacter* a_this, float a_deltaTime)
 {
-    // auto state = RE::PlayerCharacter::GetSingleton()->GetLifeState();
-    // if (state == RE::ACTOR_LIFE_STATE::kDead)
-    // {
-    //     logs::info("player is dead");
-    // }
-    // else
-    // {
-    //     logs::info("player is not dead: {}", (int)state);
-    // }
+    if (g_updatePending.exchange(false))
+    {
+        const float equippedWeight = a_this->GetEquippedWeight();
+        a_this->SetActorValue(RE::ActorValue::kInventoryWeight, equippedWeight);
+    }
     return func(a_this, a_deltaTime);
 }
 
@@ -92,30 +73,8 @@ float GetWeightInContainerHook::Call(RE::TESObjectREFR* a_this)
         // TODO: check armor weight reduction perks dont reset this
         auto* player = RE::PlayerCharacter::GetSingleton();
         float w      = player->GetEquippedWeight();
-        // logs::info("float: {}", w);
-        // float difference = 0.0;
-        // if (w != prev_weight)
-        // {
-        //     logs::info("------------");
-        //     difference = w - prev_weight;
-        //     logs::info("weight: {}, prev: {}, difference: {}", w, prev_weight, difference);
-        //     prev_weight = w;
-        //     if (difference > 0)
-        //     {
-        //         // player->RestoreActorValue(RE::ActorValue::kInventoryWeight, difference);
-        //     }
-        //     else
-        //     {
-        //         // player->DamageActorValue(RE::ActorValue::kInventoryWeight, difference);
-        //     }
-        //     logs::info("inventory weight current: {}", player->GetActorValue(RE::ActorValue::kInventoryWeight));
-        // }
-        // SKSE::GetTaskInterface()->AddTask([player, w]() { player->SetActorValue(RE::ActorValue::kInventoryWeight, w); });
-        logs::info("GetWeightInContainerHook:m {}", w);
         return w;
     }
-
-
     return func(a_this);
 }
 
