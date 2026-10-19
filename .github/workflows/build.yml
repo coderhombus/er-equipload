@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  MOD_NAME: Exhausting Combat    
+  MOD_NAME: er-equipload
 
 jobs:
   build:
@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        runtime: [AE, SE]
+        runtime: [AE] #, SE]
 
     steps:
       - name: Checkout
