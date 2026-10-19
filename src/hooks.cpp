@@ -30,7 +30,6 @@ namespace EXCO::HOOKS
 
 bool IsOverEncumberedHook::Call(RE::Actor* a_this)
 {
-
     if (!a_this || !a_this->IsPlayerRef())
         return false;
 
@@ -56,9 +55,11 @@ bool CanRunHook::Call(RE::Actor* a_this)
 
 void PlayerUpdateHook::Call(RE::PlayerCharacter* a_this, float a_deltaTime)
 {
+    // logs::info("player update: g_updatePending @ {:p}, value={}", static_cast<void*>(&g_updatePending), g_updatePending.load());
     if (g_updatePending.exchange(false))
     {
         const float equippedWeight = a_this->GetEquippedWeight();
+        // logs::info("equippedWeight={}", equippedWeight);
         a_this->SetActorValue(RE::ActorValue::kInventoryWeight, equippedWeight);
     }
     return func(a_this, a_deltaTime);
@@ -92,7 +93,7 @@ void InstallHooks()
     target           = REL::Relocation<std::uintptr_t>{RELOCATION_ID(NULL, 37235)};
     CanRunHook::func = SKSE::GetTrampoline().write_branch<5>(target.address(), CanRunHook::Call);
 
-    HookUtils::WriteVFunc<RE::PlayerCharacter, 6, 0xad, PlayerUpdateHook>();
+    HookUtils::WriteVFunc<RE::PlayerCharacter, 0, 0xad, PlayerUpdateHook>();
     HookUtils::WriteCall5<GetWeightInContainerHook>(RELOCATION_ID(19277, 19703), OFFSET(0x0, 0x4E));
 }
 } // namespace EXCO::HOOKS
