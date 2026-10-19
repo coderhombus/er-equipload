@@ -2,4 +2,4 @@
 #include "SKSE/API.h"
 #include "Utility/util.h"
 
-static std::atomic_bool g_updatePending;
+inline std::atomic_bool g_updatePending;
