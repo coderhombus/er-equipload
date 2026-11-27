@@ -89,3 +89,17 @@ task("shiprelease")
     end)
 
 
+
+-- engine-independent unit tests: `xmake build er-equipload-tests && xmake run er-equipload-tests`
+-- They compile without CommonLib, so they also build with any host compiler.
+add_requires("doctest")
+target("er-equipload-tests")
+    set_kind("binary")
+    set_default(false)
+    add_packages("doctest")
+    add_includedirs("src")
+    add_files("tests/*.cpp")
+    set_rundir("$(projectdir)")
+    if is_plat("windows") then
+        add_cxflags("/utf-8")
+    end

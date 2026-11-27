@@ -19,6 +19,7 @@
 #include "globals.h"
 #include "mod-data.h"
 #include "st-hooks.h"
+#include "weight/rules.h"
 
 
 namespace EXCO::HOOKS
@@ -37,26 +38,32 @@ static float CalcEquippedWeightLive(RE::Actor* a_actor)
 
 bool IsOverEncumberedHook::Call(RE::Actor* a_this)
 {
-    if (!a_this || !a_this->IsPlayerRef())
+    if (!a_this)
         return false;
 
-    if (ActorUtil::IsGod(a_this) || a_this->IsOnMount())
-        return false;
-
-    float equipped = CalcEquippedWeightLive(a_this);
-    float carry    = a_this->GetActorValue(RE::ActorValue::kCarryWeight);
-    RE::BGSEntryPoint::HandleEntryPoint(ENTRIES::maxCarryWeightEP, a_this, &carry);
-
-    return equipped > carry;
+    EquipLoad::Rules::EncumbranceFacts facts{ .isPlayer = a_this->IsPlayerRef() };
+    if (facts.isPlayer)
+    {
+        facts.godMode = ActorUtil::IsGod(a_this);
+        facts.mounted = a_this->IsOnMount();
+    }
+    if (facts.isPlayer && !facts.godMode && !facts.mounted)
+    {
+        facts.equippedWeight = CalcEquippedWeightLive(a_this);
+        facts.carryWeight    = a_this->GetActorValue(RE::ActorValue::kCarryWeight);
+        RE::BGSEntryPoint::HandleEntryPoint(ENTRIES::maxCarryWeightEP, a_this, &facts.carryWeight);
+    }
+    return EquipLoad::Rules::IsOverEncumbered(facts);
 }
 
 bool CanRunHook::Call(RE::Actor* a_this)
 {
-    if (a_this->currentProcess && a_this->IsStaggered())
-        return false;
+    if (!a_this)
+        return true;
 
-    // if (ActorUtil::IsGod(a_this) || a_this->IsOnMount())
-    //     return true;
+    const EquipLoad::Rules::RunFacts facts{ .hasProcess = a_this->currentProcess != nullptr, .staggered = a_this->IsStaggered() };
+    if (!EquipLoad::Rules::CanRun(facts))
+        return false;
     return !IsOverEncumberedHook::Call(a_this);
 }
 
