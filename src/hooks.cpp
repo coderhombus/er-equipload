@@ -28,6 +28,13 @@ namespace EXCO::HOOKS
 #undef GetObject
 #endif
 
+static float CalcEquippedWeightLive(RE::Actor* a_actor)
+{
+    using func_t = float (*)(RE::Actor*);
+    static REL::Relocation<func_t> func{ RELOCATION_ID(37016, 38044) };
+    return func(a_actor);
+}
+
 bool IsOverEncumberedHook::Call(RE::Actor* a_this)
 {
     if (!a_this || !a_this->IsPlayerRef())
@@ -36,7 +43,7 @@ bool IsOverEncumberedHook::Call(RE::Actor* a_this)
     if (ActorUtil::IsGod(a_this) || a_this->IsOnMount())
         return false;
 
-    float equipped = a_this->GetEquippedWeight();
+    float equipped = CalcEquippedWeightLive(a_this);
     float carry    = a_this->GetActorValue(RE::ActorValue::kCarryWeight);
     RE::BGSEntryPoint::HandleEntryPoint(ENTRIES::maxCarryWeightEP, a_this, &carry);
 
@@ -58,7 +65,7 @@ void PlayerUpdateHook::Call(RE::PlayerCharacter* a_this, float a_deltaTime)
     // logs::info("player update: g_updatePending @ {:p}, value={}", static_cast<void*>(&g_updatePending), g_updatePending.load());
     if (g_updatePending.exchange(false))
     {
-        const float equippedWeight = a_this->GetEquippedWeight();
+        const float equippedWeight = CalcEquippedWeightLive(a_this);
         // logs::info("equippedWeight={}", equippedWeight);
         a_this->SetActorValue(RE::ActorValue::kInventoryWeight, equippedWeight);
     }
@@ -77,7 +84,7 @@ float GetWeightInContainerHook::Call(RE::TESObjectREFR* a_this)
 
         auto* player = RE::PlayerCharacter::GetSingleton();
 
-        float w = player->GetEquippedWeight();
+        float w = CalcEquippedWeightLive(player);
         return w;
     }
     return func(a_this);
