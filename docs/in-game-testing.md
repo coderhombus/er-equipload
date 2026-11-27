@@ -3,7 +3,24 @@
 Unit tests cover the encumbrance rules and the configuration. Everything below needs Skyrim
 AE 1.6.1170. Set `iLogLevel = 1` in `er-equipload.toml` first (or `0` to also see every check);
 the log is `Documents/My Games/Skyrim Special Edition/SKSE/er-equipload.log`. Each item is "do
-X, expect log line Y". Items marked ★ confirm or refute a hypothesis from the audit.
+X, expect log line Y". Items marked ★ confirm or refute a hypothesis.
+
+Marks: `[v]` passed, `[-]` partly, `[ ]` still to test. Results of earlier rounds are kept
+below their items as quotes.
+
+## Open: round 2 (after commit 4b398d1 and the F3 diagnostic)
+
+### Carry weight now from Actor::GetTotalCarryWeight
+- [ ] Repeat the threshold checks with Fortify Carry Weight and a carry-weight perk: over-encumbrance flips exactly where it did
+      before. `[encumbrance]` lines now read `carry X (actor value Y)`; X includes perks, Y does not.
+
+### ★ F3: what the inventory menu displays (no fix yet; see "UI refresh" below)
+- [ ] Open the inventory, equip or unequip a helmet: does the **armour rating** at the bottom change immediately? (In vanilla it
+      does, which would mean the bottom bar is redrawn on equip and only the weight value it reads is stale.)
+- [ ] Still in the open inventory: equip a helmet (weight display stays stale), then drop any unequipped misc item. Does the weight
+      display jump to the new equipped weight? Dropping runs `GetWeightInContainer` (our hook) and makes vanilla refresh the menu.
+- [ ] In the same session, look for `[container-weight] Player | read while the inventory menu is open | equipped weight X reported`.
+      Note whether such a line appears right after each `[equip]` line, only after the drop, or never.
 
 ## Loading
 - [v] Log shows `runtime 1.6.1170 is supported`, `config loaded from ... (0 warnings, 0 errors): bPlayerEnabled = true, iLogLevel = 1`
@@ -63,8 +80,9 @@ X, expect log line Y". Items marked ★ confirm or refute a hypothesis from the 
 - [v] ★ F8: in every `[encumbrance]` line, `carry X (actor value ..., engine total Y)`: X equals Y. If they always match, the manual carry
       calculation can be replaced by `GetTotalCarryWeight`.
   > They do indeed match
-- [i think so] ★ Armour-weight perks (e.g. Conditioning, Weightless): note whether `equipped` drops when the perk is taken; it shows whether
+- [v] ★ Armour-weight perks (e.g. Conditioning, Weightless): note whether `equipped` drops when the perk is taken; it shows whether
       `InventoryChanges::GetEquippedWeight` applies the "Mod Armor Weight" entry point.
+      Confirmed by ghidra/GetEquippedWeight.md: the entry point is applied to every worn armour (see docs/engine-notes.md).
 > When over-encumbered, but then activating the Conditioning perk which makes heavy armor weigh nothing and no longer slows you down:
 > ```
 > [19:54:36.386] [ 384 ] [D] [equip] Player | item: Iron Armor | equipped | cached equipped weight at event: 50.00 | game paused: true, inventory menu open: true | outcome: sync requested

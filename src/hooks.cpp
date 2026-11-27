@@ -113,6 +113,24 @@ struct PlayerUpdateHook
 // reference, so only the player's inventory is redirected.
 struct GetInventoryWeightHook
 {
+    // F3 diagnostic: whether the inventory menu reads the player's weight through this path
+    // while it is open, and whether it re-reads after an equipment change. Logs only when the
+    // value differs from the last one logged during the same menu session.
+    static void LogReadWhileInventoryOpen(float a_equipped)
+    {
+        static std::atomic<float> lastLogged{-1.0f};
+        auto* ui = RE::UI::GetSingleton();
+        if (!ui || !ui->IsMenuOpen(RE::InventoryMenu::MENU_NAME))
+        {
+            lastLogged = -1.0f;
+            return;
+        }
+        if (lastLogged.exchange(a_equipped) != a_equipped)
+        {
+            logs::debug("[container-weight] Player | read while the inventory menu is open | equipped weight {:.2f} reported", a_equipped);
+        }
+    }
+
     static float Call(RE::InventoryChanges* a_changes)
     {
         auto* player             = RE::PlayerCharacter::GetSingleton();
@@ -125,6 +143,10 @@ struct GetInventoryWeightHook
         if (IsTraceEnabled())
         {
             logs::trace("[container-weight] Player | equipped weight {:.2f} reported as inventory weight", equipped);
+        }
+        else if (IsDebugEnabled())
+        {
+            LogReadWhileInventoryOpen(equipped);
         }
         return equipped;
     }
