@@ -28,7 +28,6 @@ includes("xmake-rules.lua")
 
 -- Skyrim AE 1.6.1170 only. The exact runtime is enforced at load time in src/plugin-info.h.
 set_config("skyrim_ae", true)
-set_config("rex_toml", true)
 set_config("use-hook-utils", true)
 set_config("use-fuck", true)
 
@@ -40,12 +39,14 @@ option("werror")
     set_description("Treat warnings in this project's sources as errors")
 option_end()
 
+add_requires("toml11")
 add_requires("doctest")
 
 -- the SKSE plugin
 target(mod_name)
     add_deps("commonlibsse", {public = true})
     add_deps("styyx-util", {public = true})
+    add_packages("toml11")
 
     set_targetdir("build/skse/plugins")
 
@@ -77,9 +78,10 @@ target(mod_name)
 target("er-equipload-tests")
     set_kind("binary")
     set_default(false)
-    add_packages("doctest")
+    add_packages("toml11", "doctest")
     add_includedirs("src")
-    add_files("tests/*.cpp")
+    add_files("tests/*.cpp", "src/config/*.cpp")
+    add_defines("ER_EQUIPLOAD_SOURCE_DIR=\"" .. os.projectdir():gsub("\\", "/") .. "\"")
     set_rundir("$(projectdir)")
     if is_plat("windows") then
         add_cxflags("/utf-8")

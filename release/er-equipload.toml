@@ -1,5 +1,21 @@
-[er-equipload.NPC]
-# fNPCStaminaCostAttack = 10.0
+# ER Equipload configuration
+#
+# Read when the game starts and rewritten when settings change in the in-game menu.
+# Every setting lists what it does, its default and its valid range. Values outside the
+# range are clamped; missing or invalid values fall back to the default and are reported
+# in the SKSE log (Documents/My Games/Skyrim Special Edition/SKSE/er-equipload.log).
 
-[er-equipload.Player]
-bPlayerEquippedWeightOnly = true
+[General]
+
+# Log detail: 0 trace, 1 debug, 2 info, 3 warnings, 4 errors, 5 critical, 6 off.
+# 1 logs every equipment change and every change of the over-encumbered state with all weights;
+# 0 also logs every encumbrance and run check. 0 and 1 write large logs.
+# Default: 2 | Valid: 0 to 6
+iLogLevel = 2
+
+[Player]
+
+# On: only equipped items count towards the player's carried weight and over-encumbrance.
+# Off: vanilla behaviour (the whole inventory counts). Takes effect immediately.
+# Default: true | Valid: true or false
+bPlayerEnabled = true

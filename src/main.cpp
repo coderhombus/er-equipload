@@ -3,12 +3,14 @@
 #include <SKSE/SKSE.h>
 
 #include <algorithm>
+#include <filesystem>
 #include <string>
 
-#include "Menu/ingame-menu.h"
-#include "config.h"
+#include "config/config-store.h"
+#include "config/settings.h"
 #include "hooks.h"
 #include "logging.h"
+#include "menu/settings-menu.h"
 #include "plugin-info.h"
 #include "weight/player-weight.h"
 
@@ -37,6 +39,32 @@ bool IsSupportedRuntime(const REL::Version& a_runtime)
     return false;
 }
 
+void LoadConfig()
+{
+    auto& settings    = Config::Get();
+    const auto report = Config::LoadFromFile(std::filesystem::path(Config::kConfigFilePath), settings);
+    SetLogLevel(settings.general.logLevel.GetValue());
+
+    for (const auto& diagnostic : report.diagnostics)
+    {
+        switch (diagnostic.severity)
+        {
+            case Config::Severity::Info:
+                logs::info("config: {}", diagnostic.message);
+                break;
+            case Config::Severity::Warning:
+                logs::warn("config: {}", diagnostic.message);
+                break;
+            case Config::Severity::Error:
+                logs::error("config: {}", diagnostic.message);
+                break;
+        }
+    }
+    logs::info("config loaded from {} ({} warnings, {} errors): bPlayerEnabled = {}, iLogLevel = {}", Config::kConfigFilePath,
+               report.Count(Config::Severity::Warning), report.Count(Config::Severity::Error), settings.player.enabled.GetValue(),
+               settings.general.logLevel.GetValue());
+}
+
 void OnSkseMessage(SKSE::MessagingInterface::Message* a_message)
 {
     if (!a_message)
@@ -49,7 +77,7 @@ void OnSkseMessage(SKSE::MessagingInterface::Message* a_message)
             Weight::RegisterEquipEventSink();
             break;
         case SKSE::MessagingInterface::kDataLoaded:
-            EXCO::FMenu::RegisterFMenu();
+            Menu::Register();
             break;
         default:
             break;
@@ -66,10 +94,11 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
         return false;
     }
 
+    LoadConfig(); // before hooks: hooks read settings from the first frame
+
     SKSE::AllocTrampoline(Hooks::kTrampolineBytes);
     Hooks::Install();
 
-    EXCO::CONFIG::UpdateSettings(false);
     if (!SKSE::GetMessagingInterface()->RegisterListener(OnSkseMessage))
     {
         logs::error("could not register for SKSE messages; equip events and menu will not initialise");
