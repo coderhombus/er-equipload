@@ -1,39 +1,23 @@
+#include <RE/Skyrim.h>
+
+#include <SKSE/SKSE.h>
+
 #include <algorithm>
 #include <string>
 
 #include "Menu/ingame-menu.h"
-#include "SKSE/API.h"
-#include "Utility/util.h"
 #include "config.h"
-#include "events.cpp"
 #include "hooks.h"
+#include "logging.h"
 #include "plugin-info.h"
-
-void Listener(SKSE::MessagingInterface::Message* a_msg)
-{
-    switch (a_msg->type)
-    {
-        case SKSE::MessagingInterface::kDataLoaded:
-
-            EXCO::FMenu::RegisterFMenu();
-            break;
-        case SKSE::MessagingInterface::kPostLoad:
-            if (const auto scripts = RE::ScriptEventSourceHolder::GetSingleton())
-            {
-                scripts->PrependEventSink<RE::TESEquipEvent>(EXCO::PCManager::GetSingleton());
-                logs::info("\t\tRegistered for {}", typeid(RE::TESEquipEvent).name());
-            }
-            break;
-        default:
-            break;
-    }
-}
+#include "weight/player-weight.h"
 
 namespace
 {
+using namespace EquipLoad;
+
 bool IsSupportedRuntime(const REL::Version& a_runtime)
 {
-    using namespace EquipLoad;
     if (std::ranges::find(Plugin::kSupportedRuntimes, a_runtime) != Plugin::kSupportedRuntimes.end())
     {
         logs::info("runtime {} is supported", a_runtime.string());
@@ -52,6 +36,25 @@ bool IsSupportedRuntime(const REL::Version& a_runtime)
     logs::critical("runtime {} is not supported (supported: {}); {} will not load", a_runtime.string(), supported, Plugin::kDisplayName);
     return false;
 }
+
+void OnSkseMessage(SKSE::MessagingInterface::Message* a_message)
+{
+    if (!a_message)
+    {
+        return;
+    }
+    switch (a_message->type)
+    {
+        case SKSE::MessagingInterface::kPostLoad:
+            Weight::RegisterEquipEventSink();
+            break;
+        case SKSE::MessagingInterface::kDataLoaded:
+            EXCO::FMenu::RegisterFMenu();
+            break;
+        default:
+            break;
+    }
+}
 } // namespace
 
 SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
@@ -62,12 +65,15 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
     {
         return false;
     }
-    // SKSE::AllocTrampoline(14 * 4); // change this to appropriate size - num_hooks * size_bytes
-    SKSE::AllocTrampoline(1 << 10); // 1024 bytes
-    EXCO::HOOKS::InstallHooks();
+
+    SKSE::AllocTrampoline(Hooks::kTrampolineBytes);
+    Hooks::Install();
 
     EXCO::CONFIG::UpdateSettings(false);
-    SKSE::GetMessagingInterface()->RegisterListener(Listener);
-
+    if (!SKSE::GetMessagingInterface()->RegisterListener(OnSkseMessage))
+    {
+        logs::error("could not register for SKSE messages; equip events and menu will not initialise");
+    }
+    logs::info("{} loaded", Plugin::kDisplayName);
     return true;
 }

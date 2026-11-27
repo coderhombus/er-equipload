@@ -14,5 +14,3 @@
 
 // Transitional: the sources still use these unqualified; removed when they are restructured.
 using namespace StyyxUtil;
-using namespace std::literals;
-namespace logs = SKSE::log;

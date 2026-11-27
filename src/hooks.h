@@ -1,41 +1,14 @@
 #pragma once
 
-#include "RE/A/Actor.h"
-#include "RE/I/InventoryChanges.h"
-#include "RE/P/PlayerCharacter.h"
-#include "RE/RTTI.h"
-#include "REL/Relocation.h"
-namespace EXCO
-{
-namespace HOOKS
-{
+#include <cstddef>
 
-void InstallHooks();
-
-
-struct IsOverEncumberedHook
+namespace EquipLoad::Hooks
 {
-    static bool Call(RE::Actor* a_this);
-    static inline REL::Relocation<decltype(Call)> func;
-};
-struct CanRunHook
-{
-    static bool Call(RE::Actor* a_this);
-    static inline REL::Relocation<decltype(Call)> func;
-};
-struct PlayerUpdateHook
-{
-    static void Call(RE::PlayerCharacter* a_this, float a_deltaTime);
-    static inline REL::Relocation<decltype(Call)> func;
-};
+/// Bytes of SKSE trampoline Install() needs: one 14-byte branch per branch or call hook.
+inline constexpr std::size_t kTrampolineHookCount = 3;
+inline constexpr std::size_t kBytesPerBranch      = 14;
+inline constexpr std::size_t kTrampolineBytes     = kTrampolineHookCount * kBytesPerBranch;
 
-struct GetWeightInContainerHook
-{
-    static float prev_weight;
-    static float Call(RE::TESObjectREFR* a_this);
-    static inline REL::Relocation<decltype(Call)> func;
-};
-
-
-} // namespace HOOKS
-} // namespace EXCO
+/// Installs every hook. Requires SKSE::AllocTrampoline(kTrampolineBytes) first.
+void Install();
+} // namespace EquipLoad::Hooks

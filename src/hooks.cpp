@@ -1,113 +1,94 @@
 #include "hooks.h"
 
-#include "RE/A/Actor.h"
-#include "RE/A/ActorMagicCaster.h"
-#include "RE/A/ActorState.h"
-#include "RE/A/ActorValueOwner.h"
-#include "RE/A/ActorValues.h"
-#include "RE/B/BGSAttackData.h"
-#include "RE/C/Character.h"
-#include "RE/E/ExtraDataList.h"
-#include "RE/F/FormTypes.h"
-#include "RE/I/InventoryEntryData.h"
-#include "RE/P/PlayerCharacter.h"
-#include "REL/Offset.h"
-#include "SKSE/Impl/PCH.h"
-#include "SKSE/Logger.h"
-#include "Utility/util.h"
-#include "config.h"
-#include "globals.h"
-#include "mod-data.h"
-#include "st-hooks.h"
+#include <RE/Skyrim.h>
+
+#include <SKSE/SKSE.h>
+
+#include <styyx-utils.h>
+
+#include "logging.h"
+#include "weight/player-weight.h"
 #include "weight/rules.h"
 
+// Hook targets are Skyrim AE 1.6.1170 Address Library IDs and offsets (see plugin-info.h for the
+// runtime check). Each hook only translates engine arguments and calls into weight/.
 
-namespace EXCO::HOOKS
+namespace EquipLoad::Hooks
 {
-
-#ifdef GetObject
-#undef GetObject
-#endif
-
-static float CalcEquippedWeightLive(RE::Actor* a_actor)
+namespace
 {
-    using func_t = float (*)(RE::Actor*);
-    static REL::Relocation<func_t> func{ REL::ID(38044) };
-    return func(a_actor);
-}
-
-bool IsOverEncumberedHook::Call(RE::Actor* a_this)
+// Replaces Actor::IsOverEncumbered (full replacement: `func` is not callable).
+struct IsOverEncumberedHook
 {
-    if (!a_this)
-        return false;
-
-    EquipLoad::Rules::EncumbranceFacts facts{ .isPlayer = a_this->IsPlayerRef() };
-    if (facts.isPlayer)
+    static bool Call(RE::Actor* a_this)
     {
-        facts.godMode = ActorUtil::IsGod(a_this);
-        facts.mounted = a_this->IsOnMount();
+        if (!a_this)
+        {
+            return false;
+        }
+        return Rules::IsOverEncumbered(Weight::GatherEncumbranceFacts(*a_this));
     }
-    if (facts.isPlayer && !facts.godMode && !facts.mounted)
+};
+
+// Replaces Actor::CanRun (full replacement: `func` is not callable).
+struct CanRunHook
+{
+    static bool Call(RE::Actor* a_this)
     {
-        facts.equippedWeight = CalcEquippedWeightLive(a_this);
-        facts.carryWeight    = a_this->GetActorValue(RE::ActorValue::kCarryWeight);
-        RE::BGSEntryPoint::HandleEntryPoint(ENTRIES::maxCarryWeightEP, a_this, &facts.carryWeight);
+        if (!a_this)
+        {
+            return true;
+        }
+        return Rules::CanRun({.hasProcess  = a_this->currentProcess != nullptr,
+                              .staggered   = a_this->IsStaggered(),
+                              .encumbrance = Weight::GatherEncumbranceFacts(*a_this)});
     }
-    return EquipLoad::Rules::IsOverEncumbered(facts);
-}
+};
 
-bool CanRunHook::Call(RE::Actor* a_this)
+struct PlayerUpdateHook
 {
-    if (!a_this)
-        return true;
-
-    const EquipLoad::Rules::RunFacts facts{ .hasProcess = a_this->currentProcess != nullptr, .staggered = a_this->IsStaggered() };
-    if (!EquipLoad::Rules::CanRun(facts))
-        return false;
-    return !IsOverEncumberedHook::Call(a_this);
-}
-
-void PlayerUpdateHook::Call(RE::PlayerCharacter* a_this, float a_deltaTime)
-{
-    // logs::info("player update: g_updatePending @ {:p}, value={}", static_cast<void*>(&g_updatePending), g_updatePending.load());
-    if (g_updatePending.exchange(false))
+    static void Call(RE::PlayerCharacter* a_this, float a_deltaTime)
     {
-        const float equippedWeight = CalcEquippedWeightLive(a_this);
-        // logs::info("equippedWeight={}", equippedWeight);
-        a_this->SetActorValue(RE::ActorValue::kInventoryWeight, equippedWeight);
+        if (a_this)
+        {
+            Weight::ApplyPendingSync(*a_this);
+        }
+        func(a_this, a_deltaTime);
     }
-    return func(a_this, a_deltaTime);
-}
+    static inline REL::Relocation<decltype(Call)> func;
+};
 
-float EXCO::HOOKS::GetWeightInContainerHook::prev_weight = 0.0f;
-float GetWeightInContainerHook::Call(RE::TESObjectREFR* a_this)
+// The InventoryChanges::GetInventoryWeight call inside TESObjectREFR::GetWeightInContainer.
+struct GetInventoryWeightHook
 {
-    if (a_this)
+    static float Call(RE::InventoryChanges* a_changes)
     {
-        // TODO: only run this if this relates to the player - TRUE
-        // logs::info("func(a_this): {}", func(a_this));
-
-        // TODO: check armor weight reduction perks dont reset this - TRUE
-
-        auto* player = RE::PlayerCharacter::GetSingleton();
-
-        float w = CalcEquippedWeightLive(player);
-        return w;
+        if (a_changes)
+        {
+            if (auto* player = RE::PlayerCharacter::GetSingleton())
+            {
+                return Weight::CalcEquippedWeightLive(*player);
+            }
+        }
+        return func(a_changes);
     }
-    return func(a_this);
-}
+    static inline REL::Relocation<decltype(Call)> func;
+};
+} // namespace
 
-void InstallHooks()
+void Install()
 {
-    logs::info("InstallHooks");
+    using StyyxUtil::HookUtils::WriteCall5;
+    using StyyxUtil::HookUtils::WriteVFunc;
 
-    auto target                = REL::Relocation<std::uintptr_t>{REL::ID(37453)};
-    IsOverEncumberedHook::func = SKSE::GetTrampoline().write_branch<5>(target.address(), IsOverEncumberedHook::Call);
+    auto& trampoline = SKSE::GetTrampoline();
+    trampoline.write_branch<5>(REL::Relocation<std::uintptr_t>{REL::ID(37453)}.address(), IsOverEncumberedHook::Call); // Actor::IsOverEncumbered
+    trampoline.write_branch<5>(REL::Relocation<std::uintptr_t>{REL::ID(37235)}.address(), CanRunHook::Call);           // Actor::CanRun
 
-    target           = REL::Relocation<std::uintptr_t>{REL::ID(37235)};
-    CanRunHook::func = SKSE::GetTrampoline().write_branch<5>(target.address(), CanRunHook::Call);
+    WriteVFunc<RE::PlayerCharacter, 0, 0xAD, PlayerUpdateHook>();                                                      // Actor::Update
+    WriteCall5<GetInventoryWeightHook>(REL::ID(19703), 0x4E); // TESObjectREFR::GetWeightInContainer
+    static_assert(kTrampolineHookCount == 3, "update kTrampolineHookCount when adding or removing trampoline hooks");
 
-    HookUtils::WriteVFunc<RE::PlayerCharacter, 0, 0xad, PlayerUpdateHook>();
-    HookUtils::WriteCall5<GetWeightInContainerHook>(REL::ID(19703), 0x4E);
+    logs::info("installed {} trampoline hooks and 1 virtual hook", kTrampolineHookCount);
 }
-} // namespace EXCO::HOOKS
+} // namespace EquipLoad::Hooks
