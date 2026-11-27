@@ -32,7 +32,7 @@ namespace EXCO::HOOKS
 static float CalcEquippedWeightLive(RE::Actor* a_actor)
 {
     using func_t = float (*)(RE::Actor*);
-    static REL::Relocation<func_t> func{ RELOCATION_ID(37016, 38044) };
+    static REL::Relocation<func_t> func{ REL::ID(38044) };
     return func(a_actor);
 }
 
@@ -101,13 +101,13 @@ void InstallHooks()
 {
     logs::info("InstallHooks");
 
-    auto target                = REL::Relocation<std::uintptr_t>{RELOCATION_ID(36457, 37453)};
+    auto target                = REL::Relocation<std::uintptr_t>{REL::ID(37453)};
     IsOverEncumberedHook::func = SKSE::GetTrampoline().write_branch<5>(target.address(), IsOverEncumberedHook::Call);
 
-    target           = REL::Relocation<std::uintptr_t>{RELOCATION_ID(NULL, 37235)};
+    target           = REL::Relocation<std::uintptr_t>{REL::ID(37235)};
     CanRunHook::func = SKSE::GetTrampoline().write_branch<5>(target.address(), CanRunHook::Call);
 
     HookUtils::WriteVFunc<RE::PlayerCharacter, 0, 0xad, PlayerUpdateHook>();
-    HookUtils::WriteCall5<GetWeightInContainerHook>(RELOCATION_ID(19277, 19703), OFFSET(0x0, 0x4E));
+    HookUtils::WriteCall5<GetWeightInContainerHook>(REL::ID(19703), 0x4E);
 }
 } // namespace EXCO::HOOKS

@@ -1,16 +1,8 @@
 local PLUGIN_CPP = [[
 #include <SKSE/SKSE.h>
 
-#if defined(SKSE_TEMPLATE_SKYRIM_VR)
-SKSEPluginInfo(
-    .Version = { ${PLUGIN_VERSION_MAJOR}, ${PLUGIN_VERSION_MINOR}, ${PLUGIN_VERSION_PATCH}, 0 },
-    .Name = "${PLUGIN_NAME}",
-    .Author = "${PLUGIN_AUTHOR}",
-    .SupportEmail = "${PLUGIN_EMAIL}",
-    .StructCompatibility = SKSE::StructCompatibility::Independent,
-    .RuntimeCompatibility = SKSE::VersionIndependence::AddressLibrary
-)
-#elif defined(SKYRIM_SUPPORT_AE)
+// Skyrim AE only. Address Library makes the DLL loadable on any AE build; the exact supported
+// runtime list is enforced in SKSEPluginLoad (src/plugin-info.h).
 extern "C" __declspec(dllexport)
 constinit auto SKSEPlugin_Version = []() {
     SKSE::PluginVersionData v;
@@ -20,31 +12,9 @@ constinit auto SKSEPlugin_Version = []() {
     v.AuthorEmail("${PLUGIN_EMAIL}");
     v.UsesAddressLibrary();
     v.UsesUpdatedStructs();
-    v.CompatibleVersions({ SKSE::RUNTIME_SSE_LATEST });
+    v.CompatibleVersions({ SKSE::RUNTIME_SSE_1_6_1170 });
     return v;
 }();
-#else
-extern "C" __declspec(dllexport)
-bool SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info)
-{
-    a_info->infoVersion = SKSE::PluginInfo::kVersion;
-    a_info->name = "${PLUGIN_NAME}";
-    a_info->version = REL::Version{ ${PLUGIN_VERSION_MAJOR}, ${PLUGIN_VERSION_MINOR}, ${PLUGIN_VERSION_PATCH}, 0 }.pack();
-
-    if (a_skse->IsEditor()) {
-        SKSE::log::critical("Loaded in editor, marking as incompatible");
-        return false;
-    }
-
-    const auto ver = a_skse->RuntimeVersion();
-    if (ver < SKSE::RUNTIME_SSE_1_5_39) {
-        SKSE::log::critical("Unsupported runtime version {}", ver.string());
-        return false;
-    }
-
-    return true;
-}
-#endif
 ]]
 
 local PLUGIN_RC = [[

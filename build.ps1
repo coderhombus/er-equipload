@@ -1,7 +1,6 @@
-# xmake project -k compile_commands
 xmake
-$source = "Distr\AE\SKSE"
-# $destination = "D:\Games\Mods\SE\MO2\mods\er-equipload\"
-$destination = "Z:\Games\Mods\SE\MO3\mods\er-equipload\"
+# Deployment copy disabled; re-enable and set your mod folder when needed.
+# $source = "Distr\SKSE"
+# $destination = "Z:\Games\Mods\SE\MO3\mods\er-equipload\"
 
-Copy-Item -Path $source -Destination $destination -Recurse -Force
+# Copy-Item -Path $source -Destination $destination -Recurse -Force

@@ -1,7 +1,11 @@
 name: Build SKSE Plugin
 
+# Manual runs plus pull requests and version tags. Day-to-day iteration is faster locally.
 on:
   workflow_dispatch:
+  pull_request:
+  push:
+    tags: ["v*"]
 
 env:
   MOD_NAME: er-equipload
@@ -9,10 +13,6 @@ env:
 jobs:
   build:
     runs-on: windows-2022
-
-    strategy:
-      matrix:
-        runtime: [AE] #, SE]
 
     steps:
       - name: Checkout
@@ -26,23 +26,24 @@ jobs:
           xmake-version: latest
           build-cache: true
           package-cache: true
-          build-cache-key: windows-ci-${{ hashFiles('xmake.lua', 'src/**') }}
-          package-cache-key: windows-ci-${{ hashFiles('xmake.lua') }}
+          # CommonLib dominates build time and only changes with the submodule, so key the build
+          # cache on the build files and submodule commits rather than on every source change.
+          build-cache-key: windows-ci-${{ hashFiles('xmake.lua', 'xmake-rules.lua') }}-${{ hashFiles('lib/commonlibsse/src/**', 'lib/commonlibsse/include/**') }}
+          package-cache-key: windows-ci-${{ hashFiles('xmake.lua', 'xmake-requires.lock', 'lib/commonlibsse/xmake.lua') }}
 
       - name: Configure
-        shell: pwsh
-        run: |
-          if ("${{ matrix.runtime }}" -eq "AE") {
-            xmake f -m releasedbg --skyrim_ae=true -y
-          } else {
-            xmake f -m releasedbg --skyrim_ae=false -y
-          }
+        run: xmake f -m releasedbg -y
 
-      - name: Build
-        run: xmake
+      - name: Build plugin
+        run: xmake build -y
+
+      - name: Unit tests
+        run: |
+          xmake build -y er-equipload-tests
+          xmake run er-equipload-tests
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v6
         with:
-          name: ${{ env.MOD_NAME }}-${{ matrix.runtime }}
-          path: Distr/${{ matrix.runtime }}
+          name: ${{ env.MOD_NAME }}
+          path: Distr
