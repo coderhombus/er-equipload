@@ -21,11 +21,12 @@ namespace EquipLoad::Weight
 /// Recomputes the actor's equipped weight from its inventory now (Actor::CalcEquippedWeight),
 /// refreshing the engine's cached value. GetEquippedWeight() can return a stale cache right
 /// after an equipment change.
+///
+/// What counts (InventoryChanges::GetEquippedWeight, ghidra/GetEquippedWeight.md, confirmed in
+/// game): every worn item's weight; worn armour after the "Mod Armor Weight" perk entry point
+/// (Conditioning, Unhindered and similar perks apply without any code of ours); a weapon once
+/// per hand it is held in; equipped ammunition does not count.
 [[nodiscard]] float CalcEquippedWeightLive(RE::Actor& a_actor);
-
-/// CarryWeight actor value after the "Get Max Carry Weight" perk entry point, exactly as vanilla
-/// Actor::IsOverEncumbered computes it.
-[[nodiscard]] float GetCarryWeight(RE::Actor& a_actor);
 
 /// Facts for the rules. Weights are only read when they can matter (player, not in god mode,
 /// not mounted); otherwise they stay 0.

@@ -12,7 +12,7 @@ struct EncumbranceFacts
     bool godMode         = false;
     bool mounted         = false;
     float equippedWeight = 0.0f; // weight of equipped items only (the mod's replacement for inventory weight)
-    float carryWeight    = 0.0f; // CarryWeight actor value after the "Get Max Carry Weight" perk entry point
+    float carryWeight    = 0.0f; // Actor::GetTotalCarryWeight: CarryWeight actor value after the "Get Max Carry Weight" perk entry point
 };
 
 /// Over-encumbered when equipped items weigh more than the carry weight. Mirrors vanilla

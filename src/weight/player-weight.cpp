@@ -83,13 +83,6 @@ float CalcEquippedWeightLive(RE::Actor& a_actor)
     return func(&a_actor);
 }
 
-float GetCarryWeight(RE::Actor& a_actor)
-{
-    float carry = a_actor.GetActorValue(RE::ActorValue::kCarryWeight);
-    RE::BGSEntryPoint::HandleEntryPoint(RE::BGSEntryPoint::ENTRY_POINT::kGetMaxCarryWeight, &a_actor, &carry);
-    return carry;
-}
-
 Rules::EncumbranceFacts GatherEncumbranceFacts(RE::Actor& a_actor)
 {
     Rules::EncumbranceFacts facts{.isPlayer = a_actor.IsPlayerRef()};
@@ -102,7 +95,10 @@ Rules::EncumbranceFacts GatherEncumbranceFacts(RE::Actor& a_actor)
     if (!facts.godMode && !facts.mounted)
     {
         facts.equippedWeight = CalcEquippedWeightLive(a_actor);
-        facts.carryWeight    = GetCarryWeight(a_actor);
+        // Actor::GetTotalCarryWeight: the CarryWeight actor value after the "Get Max Carry Weight"
+        // perk entry point, the same value vanilla IsOverEncumbered computes by hand (matched in
+        // every logged check, including Fortify Carry Weight and carry-weight perks).
+        facts.carryWeight = a_actor.GetTotalCarryWeight();
     }
     return facts;
 }
@@ -110,12 +106,12 @@ Rules::EncumbranceFacts GatherEncumbranceFacts(RE::Actor& a_actor)
 std::string DescribeWeights(RE::Actor& a_actor, const Rules::EncumbranceFacts& a_facts)
 {
     // Every value that could explain a decision: the inputs used, the engine's cached equipped
-    // weight, the raw carry weight, the engine's own total carry weight (expected equal to the
-    // manual one) and the InventoryWeight actor value vanilla compares against.
-    return std::format("equipped {:.2f} (cached {:.2f}) | carry {:.2f} (actor value {:.2f}, engine total {:.2f}) | "
+    // weight, the raw CarryWeight actor value (before perks) and the InventoryWeight actor value
+    // vanilla compares against.
+    return std::format("equipped {:.2f} (cached {:.2f}) | carry {:.2f} (actor value {:.2f}) | "
                        "InventoryWeight actor value {:.2f} | god mode {} | mounted {}",
                        a_facts.equippedWeight, a_actor.equippedWeight, a_facts.carryWeight, a_actor.GetActorValue(RE::ActorValue::kCarryWeight),
-                       a_actor.GetTotalCarryWeight(), a_actor.GetActorValue(RE::ActorValue::kInventoryWeight), a_facts.godMode, a_facts.mounted);
+                       a_actor.GetActorValue(RE::ActorValue::kInventoryWeight), a_facts.godMode, a_facts.mounted);
 }
 
 void RegisterEquipEventSink()
