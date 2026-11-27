@@ -27,22 +27,24 @@ struct EncumbranceFacts
     return a_facts.equippedWeight > a_facts.carryWeight;
 }
 
-/// What the can-run decision depends on.
-struct RunFacts
+/// Outcome of the player's can-run check.
+enum class RunDecision
 {
-    bool hasProcess = false; // the actor has an AI process
-    bool staggered  = false;
-    EncumbranceFacts encumbrance;
+    kBlock,   // over-encumbered by equipped weight: the player cannot run
+    kVanilla, // vanilla Actor::CanRun decides (its process-state and heavy-grab checks still apply)
 };
 
-/// Pre-refactor rule: no running while staggered (only checked with an AI process) or while
-/// over-encumbered.
-[[nodiscard]] constexpr bool CanRun(const RunFacts& a_facts) noexcept
+/// The mod only adds the equipped-weight block; every other reason vanilla has for stopping a
+/// run stays with vanilla (ghidra/can_run.md).
+[[nodiscard]] constexpr RunDecision DecideRun(const EncumbranceFacts& a_facts) noexcept
 {
-    if (a_facts.hasProcess && a_facts.staggered)
-    {
-        return false;
-    }
-    return !IsOverEncumbered(a_facts.encumbrance);
+    return IsOverEncumbered(a_facts) ? RunDecision::kBlock : RunDecision::kVanilla;
+}
+
+/// Whether TESObjectREFR::GetWeightInContainer should report equipped weight instead of the
+/// inventory weight. It runs for every container and NPC reference; only the player's changes.
+[[nodiscard]] constexpr bool UseEquippedWeightForContainer(bool a_enabled, bool a_ownerIsPlayer) noexcept
+{
+    return a_enabled && a_ownerIsPlayer;
 }
 } // namespace EquipLoad::Rules

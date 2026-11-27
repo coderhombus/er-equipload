@@ -46,14 +46,29 @@ TEST_CASE("IsOverEncumbered: skipped for NPCs, god mode and mounted")
     CHECK_FALSE(IsOverEncumbered(mounted));
 }
 
-TEST_CASE("CanRun: staggered (with a process) or over-encumbered blocks running")
+TEST_CASE("DecideRun: equipped weight blocks the player; everything else is vanilla's decision")
 {
-    CHECK(CanRun({.hasProcess = true, .staggered = false, .encumbrance = Player(10.0f, 300.0f)}));
-    CHECK_FALSE(CanRun({.hasProcess = true, .staggered = true, .encumbrance = Player(10.0f, 300.0f)}));
-    CHECK(CanRun({.hasProcess = false, .staggered = true, .encumbrance = Player(10.0f, 300.0f)})); // no process: stagger ignored
-    CHECK_FALSE(CanRun({.hasProcess = true, .staggered = false, .encumbrance = Player(301.0f, 300.0f)}));
+    CHECK(DecideRun(Player(301.0f, 300.0f)) == RunDecision::kBlock);
+    CHECK(DecideRun(Player(300.0f, 300.0f)) == RunDecision::kVanilla);
+    CHECK(DecideRun(Player(10.0f, 300.0f)) == RunDecision::kVanilla);
+
+    auto god    = Player(1000.0f, 1.0f);
+    god.godMode = true;
+    CHECK(DecideRun(god) == RunDecision::kVanilla);
+
+    auto mounted    = Player(1000.0f, 1.0f);
+    mounted.mounted = true;
+    CHECK(DecideRun(mounted) == RunDecision::kVanilla);
 
     auto npc     = Player(1000.0f, 1.0f);
     npc.isPlayer = false;
-    CHECK(CanRun({.hasProcess = true, .staggered = false, .encumbrance = npc})); // NPCs are never over-encumbered
+    CHECK(DecideRun(npc) == RunDecision::kVanilla);
+}
+
+TEST_CASE("Container weight: equipped weight only for the player's inventory, only while enabled")
+{
+    CHECK(UseEquippedWeightForContainer(true, true));
+    CHECK_FALSE(UseEquippedWeightForContainer(true, false)); // NPCs, followers, chests keep their vanilla weight
+    CHECK_FALSE(UseEquippedWeightForContainer(false, true)); // disabled: vanilla everywhere
+    CHECK_FALSE(UseEquippedWeightForContainer(false, false));
 }
