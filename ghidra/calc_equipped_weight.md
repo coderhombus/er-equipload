@@ -43,6 +43,38 @@
        1406a3376 cc              ??         CCh
        1406a3377 cc              ??         CCh
 
+## Decompiled functions
+
+/* WARNING: Enum "Flag__enum_42": Some values do not have unique names */
+/* WARNING: Enum "hkpShapeType": Some values do not have unique names */
+/* WARNING: Enum "D3D_SRV_DIMENSION": Some values do not have unique names */
+/* WARNING: Enum "D3D_PRIMITIVE_TOPOLOGY": Some values do not have unique names */
+/* WARNING: Enum "SpellType": Some values do not have unique names */
+/* WARNING: Enum "Texture": Some values do not have unique names */
+/* WARNING: Enum "FunctionID": Some values do not have unique names */
+/* WARNING: Enum "DIALOGUE_TYPE": Some values do not have unique names */
+/* WARNING: Enum "BIPED_OBJECT": Some values do not have unique names */
+/* WARNING: Enum "COL_LAYER": Some values do not have unique names */
+/* WARNING: Enum "Flag__enum_20": Some values do not have unique names */
+/* WARNING: Enum "hkpCharacterStateType": Some values do not have unique names */
+/* WARNING: Enum "CHARACTER_FLAGS": Some values do not have unique names */
+
+float Actor::CalcEquippedWeight(Actor *this)
+
+{
+  longlong lVar1;
+  float fVar2;
+  
+  lVar1 = FUN_1402259d0();
+  if (lVar1 != 0) {
+    fVar2 = (float)InventoryChanges::GetEquippedWeight(lVar1,this);
+    this->equippedWeight = fVar2;
+    return fVar2;
+  }
+  this->equippedWeight = 0.0;
+  return 0.0;
+}
+
 
 Other functions:
 
@@ -93,3 +125,22 @@ Other functions:
        1402259ed cc              ??         CCh
        1402259ee cc              ??         CCh
        1402259ef cc              ??         CCh
+
+
+## Decompiled Function
+
+
+undefined8 FUN_1402259d0(longlong param_1)
+
+{
+  longlong lVar1;
+  
+  if ((param_1 != 0) && (param_1 + 0x70 != 0)) {
+    lVar1 = ExtraDataList::GetExtraData(param_1 + 0x70,0x15);
+    if (lVar1 != 0) {
+      return *(undefined8 *)(lVar1 + 0x10);
+    }
+    return 0;
+  }
+  return 0;
+}

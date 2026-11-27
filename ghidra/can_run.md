@@ -179,6 +179,60 @@
        140661aaf cc              ??         CCh
 
 
+## Decompiled CanRun function
+
+
+/* WARNING: Enum "Flag__enum_42": Some values do not have unique names */
+/* WARNING: Enum "hkpShapeType": Some values do not have unique names */
+/* WARNING: Enum "D3D_SRV_DIMENSION": Some values do not have unique names */
+/* WARNING: Enum "D3D_PRIMITIVE_TOPOLOGY": Some values do not have unique names */
+/* WARNING: Enum "SpellType": Some values do not have unique names */
+/* WARNING: Enum "Texture": Some values do not have unique names */
+/* WARNING: Enum "FunctionID": Some values do not have unique names */
+/* WARNING: Enum "DIALOGUE_TYPE": Some values do not have unique names */
+/* WARNING: Enum "BIPED_OBJECT": Some values do not have unique names */
+/* WARNING: Enum "COL_LAYER": Some values do not have unique names */
+/* WARNING: Enum "Flag__enum_20": Some values do not have unique names */
+/* WARNING: Enum "hkpCharacterStateType": Some values do not have unique names */
+/* WARNING: Enum "CHARACTER_FLAGS": Some values do not have unique names */
+
+undefined8 Actor::CanRun(longlong param_1)
+
+{
+  Actor *p1;
+  float fVar1;
+  char cVar2;
+  int iVar3;
+  float fVar4;
+  float local_res8 [2];
+  
+  if ((*(longlong *)(param_1 + 0xf8) != 0) && (iVar3 = FUN_1406e38c0(), iVar3 == 7)) {
+    return 0;
+  }
+  if (param_1 == gPlayerCharacter3) {
+    cVar2 = FUN_140737910();
+    if ((cVar2 == '\0') && (cVar2 = Actor::IsOnMount(param_1), p1 = DAT_1431874f8, cVar2 == '\0')) {
+      local_res8[0] =
+           (float)(*(code *)DAT_1431874f8->__vftable_ActorValueOwner->GetActorValue)
+                            (&DAT_1431874f8->__vftable_ActorValueOwner,0x20);
+      BGSEntryPoint::HandleEntryPoint(kGetMaxCarryWeight,p1,(undefined *)local_res8);
+      fVar1 = local_res8[0];
+      fVar4 = (float)(*(code *)p1->__vftable_ActorValueOwner->GetActorValue)
+                               (&p1->__vftable_ActorValueOwner,0x1f);
+      if (fVar1 < fVar4) {
+        return 0;
+      }
+    }
+    if (((param_1 == gPlayerCharacter3) && (*(int *)&DAT_1431874f8[3].__vftable_MagicTarget != 0))
+       && (fZKeyHeavyWeight < *(float *)((longlong)&DAT_1431874f8[3].postUpdateDispelList + 4))) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+
+
 Other functions:
 **************************************************************
 *                          FUNCTION                          *
@@ -246,6 +300,18 @@ ff ff
 1406e38fd cc              ??         CCh
 1406e38fe cc              ??         CCh
 1406e38ff cc              ??         CCh
+
+## Decompiled Function
+
+
+int FUN_1406e38c0(longlong param_1)
+
+{
+  if (*(longlong *)(param_1 + 0x10) != 0) {
+    return (int)*(short *)(*(longlong *)(param_1 + 0x10) + 0x2d8);
+  }
+  return -1;
+}
 
 
                              **************************************************************

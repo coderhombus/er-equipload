@@ -102,3 +102,78 @@
        1402e21ed cc              ??         CCh
        1402e21ee cc              ??         CCh
        1402e21ef cc              ??         CCh
+
+## Decompiled Function:
+
+
+/* WARNING: Enum "Flag__enum_42": Some values do not have unique names */
+/* WARNING: Enum "hkpShapeType": Some values do not have unique names */
+/* WARNING: Enum "D3D_SRV_DIMENSION": Some values do not have unique names */
+/* WARNING: Enum "D3D_PRIMITIVE_TOPOLOGY": Some values do not have unique names */
+/* WARNING: Enum "SpellType": Some values do not have unique names */
+/* WARNING: Enum "Texture": Some values do not have unique names */
+/* WARNING: Enum "FunctionID": Some values do not have unique names */
+/* WARNING: Enum "DIALOGUE_TYPE": Some values do not have unique names */
+/* WARNING: Enum "BIPED_OBJECT": Some values do not have unique names */
+/* WARNING: Enum "COL_LAYER": Some values do not have unique names */
+/* WARNING: Enum "hkpCharacterStateType": Some values do not have unique names */
+/* WARNING: Enum "CHARACTER_FLAGS": Some values do not have unique names */
+/* WARNING: Enum "Flag__enum_20": Some values do not have unique names */
+
+float TESObjectREFR::GetWeightInContainer(TESObjectREFR *this)
+
+{
+  TESBoundObject *pTVar1;
+  longlong lVar2;
+  InventoryChanges *this_00;
+  Actor *pAVar3;
+  Actor *this_01;
+  float fVar4;
+  float fVar5;
+  
+  pTVar1 = (this->data).objectReference;
+  this_01 = (Actor *)0x0;
+  fVar5 = 0.0;
+  if (pTVar1 != (TESBoundObject *)0x0) {
+    if (pTVar1->formType == Container) {
+      lVar2 = 0x30;
+    }
+    else {
+      if (pTVar1->formType != NPC) goto LAB_1402e21a4;
+      lVar2 = 0x88;
+    }
+    if ((longlong)&pTVar1->__vftable + lVar2 != 0) {
+      this_00 = (InventoryChanges *)ExtraDataList::GetInventoryChanges(&this->extraList);
+      if (this_00 == (InventoryChanges *)0x0) {
+        pTVar1 = (this->data).objectReference;
+        pAVar3 = this_01;
+        if (pTVar1 != (TESBoundObject *)0x0) {
+          if (pTVar1->formType == Container) {
+            pAVar3 = (Actor *)(pTVar1 + 1);
+          }
+          else if (pTVar1->formType == NPC) {
+            pAVar3 = (Actor *)&pTVar1[2].boundData.boundMax.y;
+          }
+        }
+        fVar5 = (float)TESContainer::GetItemWeight(pAVar3);
+      }
+      else {
+        fVar5 = InventoryChanges::GetInventoryWeight(this_00);
+      }
+    }
+  }
+LAB_1402e21a4:
+  if (this != DAT_1431874f8) {
+    if (this->formType == ActorCharacter) {
+      this_01 = (Actor *)this;
+    }
+    if (this_01 != (Actor *)0x0) {
+      fVar4 = Actor::GetTotalCarryWeight(this_01);
+      if (fVar5 <= fVar4) {
+        fVar4 = fVar5;
+      }
+      return fVar4;
+    }
+  }
+  return fVar5;
+}
