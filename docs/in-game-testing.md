@@ -68,19 +68,19 @@ below their items as quotes.
 With `iLogLevel = 1`. Note the thread number in brackets on each line.
 
 ### Repeated "carrying too much" messages
-- [ ] With the inventory open, equip and unequip an item so you cross the carry weight several times, ending **over** the limit.
+- [x] With the inventory open, equip and unequip an item so you cross the carry weight several times, ending **over** the limit.
       Close the menu. Expected: **one** message. Log: in the menu only `[inventory-weight] ... cached value invalidated (... delta 0.00)`
       lines, the display still updates at once; after closing one `[inventory-weight] ... change announced` with the net change.
-- [ ] Same, ending **under** the limit: no message after closing.
-- [ ] Outside menus (hotkeys), cross the limit up, down, up: one message for each upward crossing (vanilla behaviour).
-- [ ] Walking slowdown and running still follow the weight, in and after menus.
+- [x] Same, ending **under** the limit: no message after closing.
+- [x] Outside menus (hotkeys), cross the limit up, down, up: one message for each upward crossing (vanilla behaviour).
+- [x] Walking slowdown and running still follow the weight, in and after menus.
 
 ### Evidence for removing the equip-event sync
 Each `[weight-sync]` line now ends with `already current` or `changed by this sync`. Send me the lines for:
-- [ ] Equip and unequip armour, a weapon and a shield with **hotkeys** (no menu open).
-- [ ] The same through the **Favourites** menu.
-- [ ] The same from the **console**: `player.equipitem 00012E4D` / `player.unequipitem 00012E4D` (Iron Helmet), then close the console.
-- [ ] Equip in the inventory (should already be `already current`, as in round 4).
+- [x] Equip and unequip armour, a weapon and a shield with **hotkeys** (no menu open).
+- [x] The same through the **Favourites** menu.
+- [x] The same from the **console**: `player.equipitem 00012E4D` / `player.unequipitem 00012E4D` (Iron Helmet), then close the console.
+- [x] Equip in the inventory (should already be `already current`, as in round 4).
 
 If every line says `already current`, the equip-event sync can be removed. Any `changed by this sync` shows a path the
 notification does not cover yet.
@@ -88,6 +88,125 @@ notification does not cover yet.
 ### Threads
 - [ ] All `[inventory-weight]` lines carry the same thread number as the `[equip]` lines (the main thread).
 - [ ] Change settings in the menu while playing, close it: settings saved, gameplay follows (atomic values, no visible change).
+> Logs
+> ```
+> [11:20:01.938] [ 384 ] [I] er-equipload v1-0-0-0
+> [11:20:01.938] [ 384 ] [I] runtime 1-6-1170-0 is supported
+> [11:20:01.938] [ 384 ] [I] config loaded from Data/SKSE/Plugins/er-equipload.toml (0 warnings, 0 errors): bPlayerEnabled = true, iLogLevel = 1
+> [11:20:01.938] [ 384 ] [D] Default Trampoline => 0B / 82B (00.00%)
+> [11:20:01.938] [ 384 ] [D] Default Trampoline => 14B / 82B (17.07%)
+> [11:20:01.938] [ 384 ] [D] Default Trampoline => 34B / 82B (41.46%)
+> [11:20:01.938] [ 384 ] [D] Default Trampoline => 48B / 82B (58.54%)
+> [11:20:01.938] [ 384 ] [D] Default Trampoline => 68B / 82B (82.93%)
+> [11:20:01.938] [ 384 ] [D] Default Trampoline => 82B / 82B (100.00%)
+> [11:20:01.938] [ 384 ] [I] hooks installed: IsOverEncumbered yes, CanRun yes, player update yes, container weight yes
+> [11:20:01.939] [ 384 ] [I] ER Equipload loaded
+> [11:20:03.893] [ 384 ] [I] registered for equip events
+> [11:20:17.217] [ 712 ] [I] Connected to FUCK API version 7
+> [11:20:17.217] [ 712 ] [I] registered settings page with FUCK
+> [11:20:28.255] [ 384 ] [D] [inventory-weight] Player | equipped weight 6.00 | cached value invalidated (old 6.00, delta 0.00) | game paused: true
+> [11:20:28.255] [ 384 ] [D] [equip] Player | item: Iron Boots | equipped | cached equipped weight at event: 6.00 | game paused: true, inventory menu open: false | outcome: sync requested
+> [11:20:28.255] [ 384 ] [D] [inventory-weight] Player | equipped weight 36.00 | cached value invalidated (old 36.00, delta 0.00) | game paused: true
+> [11:20:28.255] [ 384 ] [D] [equip] Player | item: Iron Armor | equipped | cached equipped weight at event: 36.00 | game paused: true, inventory menu open: false | outcome: sync requested
+> [11:20:28.255] [ 384 ] [D] [inventory-weight] Player | equipped weight 41.00 | cached value invalidated (old 41.00, delta 0.00) | game paused: true
+> [11:20:28.255] [ 384 ] [D] [equip] Player | item: Iron Gauntlets | equipped | cached equipped weight at event: 41.00 | game paused: true, inventory menu open: false | outcome: sync requested
+> [11:20:28.255] [ 384 ] [D] [inventory-weight] Player | equipped weight 46.00 | cached value invalidated (old 46.00, delta 0.00) | game paused: true
+> [11:20:28.255] [ 384 ] [D] [equip] Player | item: Iron Helmet | equipped | cached equipped weight at event: 46.00 | game paused: true, inventory menu open: false | outcome: sync requested
+> [11:20:28.255] [ 384 ] [D] [equip] Player | item: Iron War Axe | equipped | cached equipped weight at event: -1.00 | game paused: true, inventory menu open: false | outcome: sync requested
+> [11:20:28.844] [ 384 ] [D] [inventory-weight] Player | equipped weight 57.00 | change announced (old 6.00, delta 51.00) | game paused: false
+> [11:20:28.844] [ 384 ] [D] [weight-sync] Player | reason: equip | equipped weight | InventoryWeight actor value 57.00 -> 57.00 (target 57.00) | already current | game paused: false, inventory menu open: false
+> [11:20:47.213] [ 384 ] [D] [can-run] Player | equipped 57.00 (cached 57.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 57.00 | god mode false | mounted false | can run: true -> false (blocked by equipped weight)
+> [11:20:50.871] [ 384 ] [D] [encumbrance] Player | equipped 57.00 (cached 57.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 57.00 | god mode false | mounted false | over-encumbered: false -> true
+> 
+> ## Unequiped Iron Armor with maxCarryWeight = 50
+> 
+> [11:21:03.571] [ 384 ] [D] [equip] Player | item: Iron Armor | unequipped | cached equipped weight at event: 57.00 | game paused: true, inventory menu open: true | outcome: sync requested
+> [11:21:03.571] [ 384 ] [D] [can-run] Player | equipped 27.00 (cached 27.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 27.00 | god mode false | mounted false | can run: false -> true (vanilla decided)
+> [11:21:03.571] [ 384 ] [D] [inventory-weight] Player | equipped weight 27.00 | cached value invalidated (old 27.00, delta 0.00) | game paused: true
+> [11:22:09.829] [ 384 ] [D] [inventory-weight] Player | equipped weight 27.00 | change announced (old 57.00, delta -30.00) | game paused: false
+> [11:22:09.829] [ 384 ] [D] [weight-sync] Player | reason: equip | equipped weight | InventoryWeight actor value 27.00 -> 27.00 (target 27.00) | already current | game paused: false, inventory menu open: false
+> [11:22:09.829] [ 384 ] [D] [encumbrance] Player | equipped 27.00 (cached 27.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 27.00 | god mode false | mounted false | over-encumbered: true -> false
+> 
+> ## Equipping and Unequiping Iron Armor multiple times - message only shows once
+> [11:23:01.613] [ 384 ] [D] [can-run] Player | equipped 57.00 (cached 57.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 57.00 | god mode false | mounted false | can run: true -> false (blocked by equipped weight)
+> [11:23:01.613] [ 384 ] [D] [inventory-weight] Player | equipped weight 57.00 | cached value invalidated (old 57.00, delta 0.00) | game paused: true
+> [11:23:01.613] [ 384 ] [D] [equip] Player | item: Iron Armor | equipped | cached equipped weight at event: 57.00 | game paused: true, inventory menu open: true | outcome: sync requested
+> [11:23:01.797] [ 384 ] [D] [equip] Player | item: Iron Armor | unequipped | cached equipped weight at event: 57.00 | game paused: true, inventory menu open: true | outcome: sync requested
+> [11:23:01.797] [ 384 ] [D] [can-run] Player | equipped 27.00 (cached 27.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 27.00 | god mode false | mounted false | can run: false -> true (vanilla decided)
+> [11:23:01.797] [ 384 ] [D] [inventory-weight] Player | equipped weight 27.00 | cached value invalidated (old 27.00, delta 0.00) | game paused: true
+> [11:23:01.985] [ 384 ] [D] [can-run] Player | equipped 57.00 (cached 57.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 57.00 | god mode false | mounted false | can run: true -> false (blocked by equipped weight)
+> [11:23:01.985] [ 384 ] [D] [inventory-weight] Player | equipped weight 57.00 | cached value invalidated (old 57.00, delta 0.00) | game paused: true
+> [11:23:01.985] [ 384 ] [D] [equip] Player | item: Iron Armor | equipped | cached equipped weight at event: 57.00 | game paused: true, inventory menu open: true | outcome: sync requested
+> [11:23:02.132] [ 384 ] [D] [equip] Player | item: Iron Armor | unequipped | cached equipped weight at event: 57.00 | game paused: true, inventory menu open: true | outcome: sync requested
+> [11:23:02.132] [ 384 ] [D] [can-run] Player | equipped 27.00 (cached 27.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 27.00 | god mode false | mounted false | can run: false -> true (vanilla decided)
+> [11:23:02.132] [ 384 ] [D] [inventory-weight] Player | equipped weight 27.00 | cached value invalidated (old 27.00, delta 0.00) | game paused: true
+> [11:23:02.313] [ 384 ] [D] [can-run] Player | equipped 57.00 (cached 57.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 57.00 | god mode false | mounted false | can run: true -> false (blocked by equipped weight)
+> [11:23:02.313] [ 384 ] [D] [inventory-weight] Player | equipped weight 57.00 | cached value invalidated (old 57.00, delta 0.00) | game paused: true
+> [11:23:02.313] [ 384 ] [D] [equip] Player | item: Iron Armor | equipped | cached equipped weight at event: 57.00 | game paused: true, inventory menu open: true | outcome: sync requested
+> [11:23:02.474] [ 384 ] [D] [equip] Player | item: Iron Armor | unequipped | cached equipped weight at event: 57.00 | game paused: true, inventory menu open: true | outcome: sync requested
+> [11:23:02.475] [ 384 ] [D] [can-run] Player | equipped 27.00 (cached 27.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 27.00 | god mode false | mounted false | can run: false -> true (vanilla decided)
+> [11:23:02.475] [ 384 ] [D] [inventory-weight] Player | equipped weight 27.00 | cached value invalidated (old 27.00, delta 0.00) | game paused: true
+> [11:23:02.649] [ 384 ] [D] [can-run] Player | equipped 57.00 (cached 57.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 57.00 | god mode false | mounted false | can run: true -> false (blocked by equipped weight)
+> [11:23:02.649] [ 384 ] [D] [inventory-weight] Player | equipped weight 57.00 | cached value invalidated (old 57.00, delta 0.00) | game paused: true
+> [11:23:02.649] [ 384 ] [D] [equip] Player | item: Iron Armor | equipped | cached equipped weight at event: 57.00 | game paused: true, inventory menu open: true | outcome: sync requested
+> [11:23:02.839] [ 384 ] [D] [equip] Player | item: Iron Armor | unequipped | cached equipped weight at event: 57.00 | game paused: true, inventory menu open: true | outcome: sync requested
+> [11:23:02.839] [ 384 ] [D] [can-run] Player | equipped 27.00 (cached 27.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 27.00 | god mode false | mounted false | can run: false -> true (vanilla decided)
+> [11:23:02.839] [ 384 ] [D] [inventory-weight] Player | equipped weight 27.00 | cached value invalidated (old 27.00, delta 0.00) | game paused: true
+> [11:23:03.199] [ 384 ] [D] [can-run] Player | equipped 57.00 (cached 57.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 57.00 | god mode false | mounted false | can run: true -> false (blocked by equipped weight)
+> [11:23:03.200] [ 384 ] [D] [inventory-weight] Player | equipped weight 57.00 | cached value invalidated (old 57.00, delta 0.00) | game paused: true
+> [11:23:03.200] [ 384 ] [D] [equip] Player | item: Iron Armor | equipped | cached equipped weight at event: 57.00 | game paused: true, inventory menu open: true | outcome: sync requested
+> [11:23:04.732] [ 384 ] [D] [inventory-weight] Player | equipped weight 57.00 | change announced (old 27.00, delta 30.00) | game paused: false
+> [11:23:04.733] [ 384 ] [D] [weight-sync] Player | reason: equip | equipped weight | InventoryWeight actor value 57.00 -> 57.00 (target 57.00) | already current | game paused: false, inventory menu open: false
+> [11:23:04.733] [ 384 ] [D] [encumbrance] Player | equipped 57.00 (cached 57.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 57.00 | god mode false | mounted false | over-encumbered: false -> true
+> 
+> 
+> ## Equipping/Unequipping Armor via hotkey
+> 
+> [11:23:49.963] [ 544 ] [D] [equip] Player | item: Iron Armor | unequipped | cached equipped weight at event: 57.00 | game paused: false, inventory menu open: false | outcome: sync requested
+> [11:23:49.967] [ 384 ] [D] [can-run] Player | equipped 27.00 (cached 27.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 27.00 | god mode false | mounted false | can run: false -> true (vanilla decided)
+> [11:23:49.967] [ 384 ] [D] [inventory-weight] Player | equipped weight 27.00 | change announced (old 57.00, delta -30.00) | game paused: false
+> [11:23:49.967] [ 384 ] [D] [weight-sync] Player | reason: equip | equipped weight | InventoryWeight actor value 27.00 -> 27.00 (target 27.00) | already current | game paused: false, inventory menu open: false
+> [11:23:49.967] [ 384 ] [D] [encumbrance] Player | equipped 27.00 (cached 27.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 27.00 | god mode false | mounted false | over-encumbered: true -> false
+> [11:23:51.705] [ 548 ] [D] [equip] Player | item: Iron Armor | equipped | cached equipped weight at event: 57.00 | game paused: false, inventory menu open: false | outcome: sync requested
+> [11:23:51.711] [ 384 ] [D] [can-run] Player | equipped 57.00 (cached 57.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 57.00 | god mode false | mounted false | can run: true -> false (blocked by equipped weight)
+> [11:23:51.711] [ 384 ] [D] [inventory-weight] Player | equipped weight 57.00 | change announced (old 27.00, delta 30.00) | game paused: false
+> [11:23:51.711] [ 384 ] [D] [weight-sync] Player | reason: equip | equipped weight | InventoryWeight actor value 57.00 -> 57.00 (target 57.00) | already current | game paused: false, inventory menu open: false
+> [11:23:51.711] [ 384 ] [D] [encumbrance] Player | equipped 57.00 (cached 57.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 57.00 | god mode false | mounted false | over-encumbered: false -> true
+> [11:23:54.132] [ 536 ] [D] [equip] Player | item: Iron Armor | unequipped | cached equipped weight at event: 57.00 | game paused: false, inventory menu open: false | outcome: sync requested
+> [11:23:54.135] [ 384 ] [D] [can-run] Player | equipped 27.00 (cached 27.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 27.00 | god mode false | mounted false | can run: false -> true (vanilla decided)
+> [11:23:54.135] [ 384 ] [D] [inventory-weight] Player | equipped weight 27.00 | change announced (old 57.00, delta -30.00) | game paused: false
+> [11:23:54.135] [ 384 ] [D] [weight-sync] Player | reason: equip | equipped weight | InventoryWeight actor value 27.00 -> 27.00 (target 27.00) | already current | game paused: false, inventory menu open: false
+> [11:23:54.135] [ 384 ] [D] [encumbrance] Player | equipped 27.00 (cached 27.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 27.00 | god mode false | mounted false | over-encumbered: true -> false
+> [11:23:56.077] [ 548 ] [D] [equip] Player | item: Iron Armor | equipped | cached equipped weight at event: 57.00 | game paused: false, inventory menu open: false | outcome: sync requested
+> [11:23:56.084] [ 384 ] [D] [can-run] Player | equipped 57.00 (cached 57.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 57.00 | god mode false | mounted false | can run: true -> false (blocked by equipped weight)
+> [11:23:56.084] [ 384 ] [D] [inventory-weight] Player | equipped weight 57.00 | change announced (old 27.00, delta 30.00) | game paused: false
+> [11:23:56.084] [ 384 ] [D] [weight-sync] Player | reason: equip | equipped weight | InventoryWeight actor value 57.00 -> 57.00 (target 57.00) | already current | game paused: false, inventory menu open: false
+> [11:23:56.084] [ 384 ] [D] [encumbrance] Player | equipped 57.00 (cached 57.00) | carry 50.00 (actor value 50.00) | InventoryWeight actor value 57.00 | god mode false | mounted false | over-encumbered: false -> true
+> 
+> ## Equipping/Unequipping Shield via hotkey
+> [11:26:38.268] [ 536 ] [D] [equip] Player | item: Iron Shield | equipped | cached equipped weight at event: 39.00 | game paused: false, inventory menu open: false | outcome: sync requested
+> [11:26:38.269] [ 384 ] [D] [can-run] Player | equipped 39.00 (cached 39.00) | carry 30.00 (actor value 30.00) | InventoryWeight actor value 39.00 | god mode false | mounted false | can run: true -> false (blocked by equipped weight)
+> [11:26:38.269] [ 384 ] [D] [inventory-weight] Player | equipped weight 39.00 | change announced (old 27.00, delta 12.00) | game paused: false
+> [11:26:38.269] [ 384 ] [D] [weight-sync] Player | reason: equip | equipped weight | InventoryWeight actor value 39.00 -> 39.00 (target 39.00) | already current | game paused: false, inventory menu open: false
+> [11:26:38.269] [ 384 ] [D] [encumbrance] Player | equipped 39.00 (cached 39.00) | carry 30.00 (actor value 30.00) | InventoryWeight actor value 39.00 | god mode false | mounted false | over-encumbered: false -> true
+> [11:26:39.734] [ 528 ] [D] [equip] Player | item: Iron Shield | unequipped | cached equipped weight at event: 39.00 | game paused: false, inventory menu open: false | outcome: sync requested
+> [11:26:39.735] [ 384 ] [D] [can-run] Player | equipped 27.00 (cached 27.00) | carry 30.00 (actor value 30.00) | InventoryWeight actor value 27.00 | god mode false | mounted false | can run: false -> true (vanilla decided)
+> [11:26:39.735] [ 384 ] [D] [inventory-weight] Player | equipped weight 27.00 | change announced (old 39.00, delta -12.00) | game paused: false
+> [11:26:39.735] [ 384 ] [D] [weight-sync] Player | reason: equip | equipped weight | InventoryWeight actor value 27.00 -> 27.00 (target 27.00) | already current | game paused: false, inventory menu open: false
+> [11:26:39.735] [ 384 ] [D] [encumbrance] Player | equipped 27.00 (cached 27.00) | carry 30.00 (actor value 30.00) | InventoryWeight actor value 27.00 | god mode false | mounted false | over-encumbered: true -> false
+> 
+> ## Equipping/Unequipping Weapon via hotkey
+> [11:27:10.115] [ 544 ] [D] [equip] Player | item: Iron War Axe | equipped | cached equipped weight at event: -1.00 | game paused: false, inventory menu open: false | outcome: sync requested
+> [11:27:10.116] [ 384 ] [D] [inventory-weight] Player | equipped weight 27.00 | change announced (old 16.00, delta 11.00) | game paused: false
+> [11:27:10.116] [ 384 ] [D] [can-run] Player | equipped 27.00 (cached 27.00) | carry 20.00 (actor value 20.00) | InventoryWeight actor value 27.00 | god mode false | mounted false | can run: true -> false (blocked by equipped weight)
+> [11:27:10.116] [ 384 ] [D] [weight-sync] Player | reason: equip | equipped weight | InventoryWeight actor value 16.00 -> 27.00 (target 27.00) | changed by this sync | game paused: false, inventory menu open: false
+> [11:27:10.116] [ 384 ] [D] [encumbrance] Player | equipped 27.00 (cached 27.00) | carry 20.00 (actor value 20.00) | InventoryWeight actor value 27.00 | god mode false | mounted false | over-encumbered: false -> true
+> [11:27:11.428] [ 532 ] [D] [equip] Player | item: Iron War Axe | unequipped | cached equipped weight at event: 27.00 | game paused: false, inventory menu open: false | outcome: sync requested
+> [11:27:11.428] [ 384 ] [D] [can-run] Player | equipped 16.00 (cached 16.00) | carry 20.00 (actor value 20.00) | InventoryWeight actor value 16.00 | god mode false | mounted false | can run: false -> true (vanilla decided)
+> [11:27:11.428] [ 384 ] [D] [inventory-weight] Player | equipped weight 16.00 | change announced (old 27.00, delta -11.00) | game paused: false
+> [11:27:11.428] [ 384 ] [D] [weight-sync] Player | reason: equip | equipped weight | InventoryWeight actor value 16.00 -> 16.00 (target 16.00) | already current | game paused: false, inventory menu open: false
+> [11:27:11.429] [ 384 ] [D] [encumbrance] Player | equipped 16.00 (cached 16.00) | carry 20.00 (actor value 20.00) | InventoryWeight actor value 16.00 | god mode false | mounted false | over-encumbered: true -> false
+> ```
 
 ## Open: round 4 (commit a32ef89: the hook now sends the InventoryWeight update)
 
