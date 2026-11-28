@@ -6,7 +6,7 @@
              TESObjectREFR     RCX:8          this
                              TESObjectREFR::GetWeightInContainer             XREF[6]:     140673603(c),
                                                                                           PlayerCharacter::DropObject:1407
-                                                                                          PlayerCharacter::WornArmorChange
+                                                                                          PlayerCharacter::WornArmorChanged
                                                                                           FUN_14074cdc0:14074d096(c),
                                                                                           FUN_14098fc80:14098fc9d(c),
                                                                                           1436278bc(*)
