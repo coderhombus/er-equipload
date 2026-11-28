@@ -11,16 +11,57 @@ below their items as quotes.
 ## Open: round 2 (after commit 4b398d1 and the F3 diagnostic)
 
 ### Carry weight now from Actor::GetTotalCarryWeight
-- [ ] Repeat the threshold checks with Fortify Carry Weight and a carry-weight perk: over-encumbrance flips exactly where it did
+- [v] Repeat the threshold checks with Fortify Carry Weight and a carry-weight perk: over-encumbrance flips exactly where it did
       before. `[encumbrance]` lines now read `carry X (actor value Y)`; X includes perks, Y does not.
 
 ### ★ F3: what the inventory menu displays (no fix yet; see "UI refresh" below)
-- [ ] Open the inventory, equip or unequip a helmet: does the **armour rating** at the bottom change immediately? (In vanilla it
+- [v] Open the inventory, equip or unequip a helmet: does the **armour rating** at the bottom change immediately? (In vanilla it
       does, which would mean the bottom bar is redrawn on equip and only the weight value it reads is stale.)
+> The value updates immediately
 - [ ] Still in the open inventory: equip a helmet (weight display stays stale), then drop any unequipped misc item. Does the weight
       display jump to the new equipped weight? Dropping runs `GetWeightInContainer` (our hook) and makes vanilla refresh the menu.
+> Weight display does not change when dropping an unequipped misc item
 - [ ] In the same session, look for `[container-weight] Player | read while the inventory menu is open | equipped weight X reported`.
       Note whether such a line appears right after each `[equip]` line, only after the drop, or never.
+> Log
+> ```
+> [07:24:34.795] [ 408 ] [I] er-equipload v1-0-0-0
+> [07:24:34.795] [ 408 ] [I] runtime 1-6-1170-0 is supported
+> [07:24:34.796] [ 408 ] [I] config loaded from Data/SKSE/Plugins/er-equipload.toml (0 warnings, 0 errors): > bPlayerEnabled = true, iLogLevel = 1
+> [07:24:34.796] [ 408 ] [D] Default Trampoline => 0B / 82B (00.00%)
+> [07:24:34.796] [ 408 ] [D] Default Trampoline => 14B / 82B (17.07%)
+> [07:24:34.796] [ 408 ] [D] Default Trampoline => 34B / 82B (41.46%)
+> [07:24:34.796] [ 408 ] [D] Default Trampoline => 48B / 82B (58.54%)
+> [07:24:34.796] [ 408 ] [D] Default Trampoline => 68B / 82B (82.93%)
+> [07:24:34.796] [ 408 ] [D] Default Trampoline => 82B / 82B (100.00%)
+> [07:24:34.796] [ 408 ] [I] hooks installed: IsOverEncumbered yes, CanRun yes, player update yes, container > weight yes
+> [07:24:34.796] [ 408 ] [I] ER Equipload loaded
+> [07:24:36.870] [ 408 ] [I] registered for equip events
+> [07:24:50.880] [ 708 ] [I] Connected to FUCK API version 7
+> [07:24:50.880] [ 708 ] [I] registered settings page with FUCK
+>
+> ## F3 Unequip/Equip while in the menu
+> [07:28:24.286] [ 408 ] [D] [equip] Player | item: Iron Helmet | unequipped | cached equipped weight at event: > 57.00 | game paused: true, inventory menu open: true | outcome: sync requested
+> [07:28:24.286] [ 408 ] [D] [container-weight] Player | read while the inventory menu is open | equipped weight > 52.00 reported
+> [07:28:25.717] [ 408 ] [D] [container-weight] Player | read while the inventory menu is open | equipped weight > 57.00 reported
+> [07:28:25.717] [ 408 ] [D] [equip] Player | item: Iron Helmet | equipped | cached equipped weight at event: 57.> 00 | game paused: true, inventory menu open: true | outcome: sync requested
+> ## Exit the Inventory menu
+> [07:28:45.771] [ 408 ] [D] [weight-sync] Player | reason: equip | equipped weight | InventoryWeight actor value > 57.00 -> 57.00 (target 57.00) | game paused: false, inventory menu open: false
+>
+> ## Unequip Helmet while in the menu
+> [07:29:42.090] [ 408 ] [D] [equip] Player | item: Iron Helmet | unequipped | cached equipped weight at event: > 57.00 | game paused: true, inventory menu open: true | outcome: sync requested
+> [07:29:42.090] [ 408 ] [D] [container-weight] Player | read while the inventory menu is open | equipped weight > 52.00 reported
+> ## Drop misc item (torch)
+> ## Exit the inventory menu
+> [07:30:16.887] [ 408 ] [D] [weight-sync] Player | reason: equip | equipped weight | InventoryWeight actor value > 57.00 -> 52.00 (target 52.00) | game paused: false, inventory menu open: false
+>
+> # Equip Helmet while in the menu
+> [07:30:39.675] [ 408 ] [D] [container-weight] Player | read while the inventory menu is open | equipped weight > 57.00 reported
+> [07:30:39.675] [ 408 ] [D] [equip] Player | item: Iron Helmet | equipped | cached equipped weight at event: 57.> 00 | game paused: true, inventory menu open: true | outcome: sync requested
+> # Drop another torch
+> # Exit the menu
+> [07:31:05.489] [ 408 ] [D] [weight-sync] Player | reason: equip | equipped weight | InventoryWeight actor value > 52.00 -> 57.00 (target 57.00) | game paused: false, inventory menu open: false
+> ```
 
 ## Loading
 - [v] Log shows `runtime 1.6.1170 is supported`, `config loaded from ... (0 warnings, 0 errors): bPlayerEnabled = true, iLogLevel = 1`
