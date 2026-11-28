@@ -166,18 +166,24 @@ This operates on the same table structure. It removes an actor-value entry and s
 
 It is called elsewhere with `Actor+0x208`.
 
-## 5. Modifier-record storage: `Actor+0x150`
+## 5. Modifier-record storage: `Actor+0x218`
 
-This is separate from the base-value table.
+> **Corrected (Claude, round 4).** The earlier version said `Actor+0x150` / `+0x160` / `+0x168`. That
+> forgot that `param_1` is the `ActorValueOwner` sub-object at `Actor+0xB8`, not the Actor.
+> `param_1 + 0x2A` (8-byte units) = owner `+0x150` = `Actor+0x208`: the **same** structure as the
+> base-value table in section 4. `FUN_1406D0A00` then reads that structure's `+0x10` / `+0x18`.
 
-For the generic modifier lookup, `FUN_1406B2230` passes `param_1 + 0x2A`, which corresponds to `Actor+0x150`.
+The modifier records live in the second half of the structure at `Actor+0x208`; the base-value cache
+uses its first half (`FUN_1406D02E0` reads `[+0x0]` and `[+0x8]`).
+
+For the generic modifier lookup, `FUN_1406B2230` passes `param_1 + 0x2A` (owner `+0x150` = `Actor+0x208`).
 
 Relevant structure:
 
 | Actor offset | Contents                                     |
 | ------------ | -------------------------------------------- |
-| `+0x160`     | Pointer to encoded actor-value ID byte array |
-| `+0x168`     | Pointer to modifier-record array             |
+| `+0x218`     | Pointer to encoded actor-value ID byte array |
+| `+0x220`     | Pointer to modifier-record array             |
 
 The ID byte array is also sorted and uses `ID+1` encoding, with zero as the terminator.
 
@@ -189,7 +195,7 @@ Address:
 
 Arguments:
 
-- `param_1`: modifier table structure (`Actor+0x150`)
+- `param_1`: the structure at `Actor+0x208` (modifier fields at its `+0x10` / `+0x18`)
 - `param_2`: actor-value ID
 
 It acquires a read lock on `DAT_14319ACD8`, searches the ID byte array at `[param_1+0x10]`, and if found returns a pointer into the array at `[param_1+0x18]`.
@@ -262,13 +268,20 @@ Address:
 
 This callback:
 
-- Calls `FUN_1406D0620(param_1 + 0x208)`.
+- Calls `FUN_1406D0620(param_1 + 0x208, id)`: the decompiler drops the second argument, but the
+  assembly at `0x1406B3C90` leaves the callback's `EDX` (the actor-value ID) untouched up to the call.
+  So the sink **removes the cached base value of the actor value it is notified about**
+  (`InventoryWeight` for slot `0x1F`). The next `GetActorValue` recomputes it (section 9).
 - Calls `FUN_14067FAC0(param_1)`.
 - Conditionally calls `Character::UpdateMovementSpeed(param_1)`.
 - Under a player-specific condition, makes a virtual call using the ActorValueOwner pointer at `DAT_1431874F8 + 0xB8`, with actor-value ID `0x20`.
 - May then call `FUN_14073A250(DAT_1431874F8, 1)`.
 
-The callback receives two float arguments, `param_3` and `param_4`. Their precise semantic meaning has not yet been established.
+The callback receives two float arguments, `param_3` and `param_4`: **the old value and the change**.
+Every supplied caller passes them that way: `InventoryChanges::GetInventoryWeight` passes
+`(previous total, new total - previous total)`, and `SetBaseActorValue` passes `(GetActorValue before,
+new base - cached base)`. The HUD check `param_3 <= carry && carry < param_3 + param_4` is therefore an
+upward crossing of the carry weight.
 
 ### `FUN_14073A250`
 
@@ -286,6 +299,9 @@ with the string:
 
 It also clears a timer field at actor offset `+0x908`.
 
+> **Unverified (Claude, round 4):** the notes only show the pointer name `PTR_aYouAreCarrying_142008cb8`,
+> not the full string, and the timer offset comes from the decompiler's field name, not from a listing.
+
 ### `FUN_14067FAC0`
 
 Address:
@@ -302,24 +318,29 @@ Address:
 
 Removes an entry from the base-value table at `Actor+0x208`. It uses the same lock, ID encoding and parallel ID/float-array structure as `FUN_1406D02E0` and `FUN_1406D0380`.
 
-## 7. Functions still to inspect
+## 7. Functions inspected in round 4 (`ghidra/` commit 37c9099)
 
-The Actor vtable contains these relevant mutation functions:
+- **`ActorValueOwner::SetBaseActorValue`** (Actor vtable slot 4, `ghidra/SetBaseActorValue.md`):
+  reads `GetActorValue(id)` (old value), looks up the cached base, writes the new base into the cache at
+  `Actor+0x208` (`FUN_1406D0380`), calls `Character::sub(actor, id)`, and **if the base changed, calls
+  `SendActorValueUpdate(actor, id, old value, new - cached)`**. So setting `InventoryWeight` triggers the
+  sink, which immediately removes the entry just written; the next read recomputes it.
+- **`ActorValueOwner::sub`** (ID 27229, `0x14043C130`, `ghidra/ActorValueOwner::sub.md`): for IDs below
+  `0xA4`, calls the function pointer at `ActorValueInfo + 0x68` (CommonLib: `computeBaseFunc`) with
+  `RCX` unchanged (the owner) and returns its result. For `InventoryWeight` that is ID 37456, which
+  calls `GetWeightInContainer(owner - 0xB8)`.
+- **ID 40434** (`0x14072FDD0`, `ghidra/0x14094fb42.md`): `encumbrance = GetActorValue(InventoryWeight)`,
+  `maxEncumbrance = Actor::GetTotalCarryWeight()`. `GetTotalCarryWeight` (37452) = `GetActorValue(CarryWeight)`
+  after the "Get Max Carry Weight" entry point (10).
+- **`PlayerCharacter::WornArmorChanged`** (ID 40708, `0x14074A800`, `ghidra/PlayerCharacter_WornArmorChanged`):
+  `FUN_1402259D0`, `FUN_140238C30`, then `GetWeightInContainer(this)`.
 
-- `SetBaseActorValue`: vtable slot 4, offset `+0x20`
-- `ModifyActorValue`: vtable slot 5, offset `+0x28`
-- `ModActorValue`: vtable slot 6, offset `+0x30`
+Still not inspected (not needed for `InventoryWeight`):
 
-Their implementations have not yet been analysed in this investigation.
-
-They are relevant to understanding how the three floats in each 12-byte modifier record are populated or changed.
-
-Also still to inspect:
-
-- `FUN_1407261A0`
-- `FUN_1407261D0`
-- `ActorValueOwner::sub`
-- The metadata flags for actor-value ID `0x1F`, particularly bit `0x12`
+- `ModifyActorValue` (slot 5), `ModActorValue` (slot 6).
+- `FUN_1407261A0` / `FUN_1407261D0`: only reached when the actor value's flag bit `0x12` is set;
+  `InventoryWeight` is registered with flags 0 (`FUN_14043C1E0`, `ghidra/0x1406735f0.md`).
+- `FUN_1402259D0` / `FUN_140238C30` inside `PlayerCharacter::WornArmorChanged`.
 
 ## 8. Key addresses reference
 
@@ -340,7 +361,31 @@ Also still to inspect:
 | `0x14073A250` | HUD warning path                     |
 | `0x1407261A0` | Special GetActorValue path           |
 | `0x1407261D0` | Special-path write/update            |
+| `0x14043C130` | `ActorValueOwner::sub` (ID 27229): calls `computeBaseFunc` |
+| `0x1406735F0` | ID 37456: `InventoryWeight` `computeBaseFunc` -> `GetWeightInContainer` |
+| `0x14072FDD0` | ID 40434: bottom-bar `encumbrance` / `maxEncumbrance` |
+| `0x14074A800` | ID 40708: `PlayerCharacter::WornArmorChanged` |
+| `0x14094F9A0` | Fills the bottom-bar object (`UpdatePlayerInfo`) |
+
+## 9. Verified chain: why the inventory weight was stale (Claude, round 4)
+
+Each step is checked against the listing or decompile named:
+
+1. Equip in the open inventory → the bottom bar is rebuilt by `FUN_14094F9A0`, which first calls the
+   player's virtual `WornArmorChanged` (`call [rax+0x908]` at `0x14094F9D2`) → ID 40708 →
+   `GetWeightInContainer(player)`.
+2. It then reads `encumbrance` through ID 40434 = `GetActorValue(InventoryWeight)` (call at `0x14094FB42`).
+3. `GetActorValue` → `GetBaseActorValue` (ID 38464) returns the cached base at `Actor+0x208` when present.
+   On a miss, for the player it always calls `ActorValueOwner::sub` → `computeBaseFunc` (ID 37456) →
+   `GetWeightInContainer` → `InventoryChanges::GetInventoryWeight` (our call hook, `+0x4E`), and caches
+   the result.
+4. Vanilla `GetInventoryWeight`, after recomputing, calls `SendActorValueUpdate(InventoryWeight, old, delta)`
+   → sink 38489 → `FUN_1406D0620(actor+0x208, 0x1F)` removes the cached base.
+5. The mod's hook returned the equipped weight for the player without calling `GetInventoryWeight`, so
+   step 4 never ran in the menu. Only the player-update sync's `SetActorValue` sent it (section 7), and
+   that sync waits until the menu closes.
+
+Fix (commit a32ef89): the hook sends the same `SendActorValueUpdate` when the reported equipped weight
+changes.
 
 **Scope:** This document records the functions, offsets, data structures and call relationships identified so far. It deliberately does not assign semantic names to the three modifier floats or establish the source of their values.
-
-Correct the modifier lookup offsetSeparate confirmed facts from decompiler assumptions

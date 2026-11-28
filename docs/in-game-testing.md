@@ -63,6 +63,23 @@ below their items as quotes.
 > [07:31:05.489] [ 408 ] [D] [weight-sync] Player | reason: equip | equipped weight | InventoryWeight actor value > 52.00 -> 57.00 (target 57.00) | game paused: false, inventory menu open: false
 > ```
 
+## Open: round 4 (commit a32ef89: the hook now sends the InventoryWeight update)
+
+With `iLogLevel = 1`:
+- [ ] ★ F3: open the inventory, unequip the helmet. Expected: the weight at the bottom changes **at once**, and the log shows
+      `[inventory-weight] Player | equipped weight 57.00 -> 52.00 | InventoryWeight update sent (old 57.00, delta -5.00)`. Equip it
+      again: it goes back at once. Repeat with a weapon and a shield.
+- [ ] Close the menu after those changes: `[weight-sync] ... InventoryWeight actor value 52.00 -> 52.00` (already current).
+- [ ] "Carrying too much" message: equip past the limit **inside** the inventory. Note when the message appears. Before this change it
+      came when the menu closed; it may now come at the moment of the equip, as vanilla does when you take items from a container.
+      Tell me if you prefer the old timing.
+- [ ] Walking slowdown and running: over the limit you walk slowly and cannot run; under it, both normal (unchanged behaviour).
+- [ ] Take Conditioning (or remove it with the console) without equipping anything, then open the inventory: the weight shown is
+      the new equipped weight. (Round 1 showed the stale 50 in this case.)
+- [ ] Drop and pick up unequipped items with the inventory open: the weight display does not change (only equipped items count).
+- [ ] Toggle the mod off in the menu, then open the inventory: vanilla full weight. Toggle on: equipped weight. No restart.
+- [ ] Save, reload, open the inventory: weight correct before equipping anything (`[inventory-weight] ... delta 0.00` on the first read).
+
 ## Open: round 3
 
 - [ ] Equip arrows or bolts (Survival Mode gives them weight; otherwise note their weight in the item card): `[weight-sync]` and
