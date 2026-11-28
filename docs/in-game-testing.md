@@ -63,6 +63,31 @@ below their items as quotes.
 > [07:31:05.489] [ 408 ] [D] [weight-sync] Player | reason: equip | equipped weight | InventoryWeight actor value > 52.00 -> 57.00 (target 57.00) | game paused: false, inventory menu open: false
 > ```
 
+## Open: round 6 (commits 44629dd, 509a972)
+
+With `iLogLevel = 1`. The equip-event sync is still in place, so gameplay should be unchanged; these checks decide whether
+it can go.
+
+### The one sync that changed something in round 5: weapon hotkeys
+- [ ] Equip and unequip the Iron War Axe (and another one- and two-handed weapon) with **hotkeys**, several times.
+      For each equip, send me the lines between `[equip]` and `[weight-sync]`. What they tell us:
+      - `[inventory-weight] ... read off the main thread | equipped weight 16.00 differs from the last report 27.00 | deferred`
+        followed by `cached value invalidated (deferred report)` and then `[weight-sync] ... already current`: the hypothesis is
+        confirmed and fixed; the sync is no longer needed for weapons.
+      - `[weight-sync] ... changed by this sync` with **no** `read off the main thread` line: something else re-caches the old
+        value; the sync stays and I will need more disassembly.
+- [ ] Repeat the round-5 sync checks once (armour and shield via hotkeys, Favourites, console, inventory): all `already current`.
+
+### Threads
+- [ ] `[equip]` lines from hotkeys still come from worker threads (that is expected now), and contain only item and
+      equipped/unequipped; every `[inventory-weight]` (except `read off the main thread`), `[weight-sync]`, `[can-run]` and
+      `[encumbrance]` line is on the main thread.
+- [ ] Note how often `read off the main thread` appears while standing still or walking around without equipping. It should be
+      rare (only when the value differs); frequent lines would mean worker threads read a stale weight often.
+
+### Unchanged behaviour (spot check)
+- [ ] One "carrying too much" message after crossing the limit several times in the inventory; slowdown and running follow the weight.
+
 ## Open: round 5 (commits ffa8703..bfb0cec)
 
 With `iLogLevel = 1`. Note the thread number in brackets on each line.

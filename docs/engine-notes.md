@@ -52,7 +52,8 @@ What the mod relies on, with the evidence for each point. "Disassembly" refers t
 
 | Fact | Evidence |
 | --- | --- |
-| SKSE loads plugins, equip events, the player update and the inventory bottom bar all run on one thread (the main thread). | Thread IDs in the round-2 and round-4 logs |
+| SKSE loads plugins, the player update, the inventory bottom bar, and equips from menus and the console all run on one thread (the main thread). | Thread IDs in the round-2, -4 and -5 logs |
+| **Hotkey equips dispatch `TESEquipEvent` on worker threads** (several per session). Weapon equips also finish asynchronously: the engine's equipped-weight cache is -1 at event time. | Round-5 log: `[equip]` on 528-548, everything else on 384 |
 | The FUCK menu (settings writes) runs on another thread. | Round-4 log: `settings saved` on thread 540, gameplay on 384 |
 | `GetWeightInContainer` (hence our container hook) is also reachable from any `GetActorValue(InventoryWeight)` through `computeBaseFunc`, which Papyrus can call on its own threads. | `ActorValueOwner::sub.md`, `0x1406735f0.md` |
 | Settings are `std::atomic` (relaxed). The `InventoryWeight` notification is sent only on the main thread; a change seen elsewhere is reported by the next player update. `CalcEquippedWeightLive` writes the engine's equipped-weight cache from the calling thread, as the engine's `GetEquippedWeight` does. | `config/parameter.h`, `weight/player-weight.cpp` |
@@ -62,6 +63,6 @@ What the mod relies on, with the evidence for each point. "Disassembly" refers t
 | Piece | Responsibility | Covered by the InventoryWeight notification? |
 | --- | --- | --- |
 | `IsOverEncumbered`, `CanRun` hooks | Decide with the live equipped weight | No: vanilla reads the cached actor value, refreshed only when `GetWeightInContainer` runs for the player. Equipped weight can change without that (perks: round 1 showed 50 cached vs 9 live). Keep. |
-| Equip-event sink + `SetActorValue` sync | Bring the actor value up to date after an equip | Proven only for equips inside the inventory menu. Removal needs the round-5 log to show `already current` for hotkey, Favourites and console equips. |
+| Equip-event sink + `SetActorValue` sync | Bring the actor value up to date after an equip | Round 5: `already current` for armour and shield via hotkeys, Favourites, console and inventory, but **one weapon hotkey equip was corrected by the sync** (16 -> 27 after the notification had announced 27). Hypothesis: a worker thread re-cached the old value mid-equip; addressed in 509a972. Keep until round 6 shows `already current` for weapon hotkeys too. |
 | Toggle sync | Restore the vanilla weight when the mod is turned off | Could become a zero-change notification once the equip sync is gone. |
 | Player-update hook | Sync, post-menu announcement, off-main-thread reports, toggle detection | Needed regardless. |
