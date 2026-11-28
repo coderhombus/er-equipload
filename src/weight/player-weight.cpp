@@ -62,6 +62,8 @@ std::string DescribeUiState()
     return std::format("game paused: {}, inventory menu open: {}", ui->GameIsPaused(), ui->IsMenuOpen(RE::InventoryMenu::MENU_NAME));
 }
 
+/// Runs on whichever thread dispatches TESEquipEvent: the main thread for menu and console
+/// equips, worker threads for hotkey equips.
 class EquipEventSink final : public RE::BSTEventSink<RE::TESEquipEvent>
 {
   public:
@@ -82,15 +84,9 @@ class EquipEventSink final : public RE::BSTEventSink<RE::TESEquipEvent>
             logs::debug("[equip] Player | item: {} | {} | skipped: mod disabled", Describe(item), a_event->equipped ? "equipped" : "unequipped");
             return RE::BSEventNotifyControl::kContinue;
         }
-        if (IsDebugEnabled())
-        {
-            // The engine's cached equipped weight, read without recomputing it (a recompute here
-            // would write the cache). -1 means the engine has already invalidated it for this
-            // change; a stale positive value means the change lands later (F3 investigation).
-            const auto* actor = a_event->actor->As<RE::Actor>();
-            logs::debug("[equip] Player | item: {} | {} | cached equipped weight at event: {:.2f} | {} | outcome: sync requested", Describe(item),
-                        a_event->equipped ? "equipped" : "unequipped", actor ? actor->equippedWeight : -1.0f, DescribeUiState());
-        }
+        // Equip events arrive on worker threads for hotkey equips (round-5 log): only thread-safe
+        // work here (form lookup, logging, an atomic flag); no UI or actor state is read.
+        logs::debug("[equip] Player | item: {} | {} | outcome: sync requested", Describe(item), a_event->equipped ? "equipped" : "unequipped");
         RequestSync("equip");
         return RE::BSEventNotifyControl::kContinue;
     }
