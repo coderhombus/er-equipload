@@ -63,6 +63,12 @@ below their items as quotes.
 > [07:31:05.489] [ 408 ] [D] [weight-sync] Player | reason: equip | equipped weight | InventoryWeight actor value > 52.00 -> 57.00 (target 57.00) | game paused: false, inventory menu open: false
 > ```
 
+## Open: round 3
+
+- [ ] Equip arrows or bolts (Survival Mode gives them weight; otherwise note their weight in the item card): `[weight-sync]` and
+      `[encumbrance]` lines show the same equipped weight before and after. Expected from the disassembly: ammunition never counts.
+- F3 is not fixed in this round. It needs the disassembly listed in the round-3 report before any change; nothing new to test yet.
+
 ## Loading
 - [v] Log shows `runtime 1.6.1170 is supported`, `config loaded from ... (0 warnings, 0 errors): bPlayerEnabled = true, iLogLevel = 1`
       and `hooks installed: IsOverEncumbered yes, CanRun yes, player update yes, container weight yes`.
