@@ -66,19 +66,42 @@ below their items as quotes.
 ## Open: round 4 (commit a32ef89: the hook now sends the InventoryWeight update)
 
 With `iLogLevel = 1`:
-- [ ] ★ F3: open the inventory, unequip the helmet. Expected: the weight at the bottom changes **at once**, and the log shows
+- [v] ★ F3: open the inventory, unequip the helmet. Expected: the weight at the bottom changes **at once**, and the log shows
       `[inventory-weight] Player | equipped weight 57.00 -> 52.00 | InventoryWeight update sent (old 57.00, delta -5.00)`. Equip it
       again: it goes back at once. Repeat with a weapon and a shield.
-- [ ] Close the menu after those changes: `[weight-sync] ... InventoryWeight actor value 52.00 -> 52.00` (already current).
-- [ ] "Carrying too much" message: equip past the limit **inside** the inventory. Note when the message appears. Before this change it
+> log:
+> ```
+> [10:16:07.517] [ 540 ] [I] settings saved to Data/SKSE/Plugins/er-equipload.toml
+> [10:16:45.251] [ 384 ] [D] [container-weight] Player | read while the inventory menu is open | equipped weight 5.00 reported
+> [10:16:45.251] [ 384 ] [D] [inventory-weight] Player | equipped weight 0.00 -> 5.00 | InventoryWeight update sent (old 0.00, delta 5.00) | game paused: true, inventory menu open: true
+> [10:16:45.251] [ 384 ] [D] [equip] Player | item: Iron Helmet | equipped | cached equipped weight at event: 5.00 | game paused: true, inventory menu open: true | outcome: sync requested
+> [10:16:45.552] [ 384 ] [D] [equip] Player | item: Iron Helmet | unequipped | cached equipped weight at event: 5.00 | game paused: true, inventory menu open: true | outcome: sync requested
+> [10:16:45.552] [ 384 ] [D] [container-weight] Player | read while the inventory menu is open | equipped weight 0.00 reported
+> [10:16:45.552] [ 384 ] [D] [inventory-weight] Player | equipped weight 5.00 -> 0.00 | InventoryWeight update sent (old 5.00, delta -5.00) | game paused: true, inventory menu open: true
+> [10:16:45.831] [ 384 ] [D] [container-weight] Player | read while the inventory menu is open | equipped weight 5.00 reported
+> [10:16:45.831] [ 384 ] [D] [inventory-weight] Player | equipped weight 0.00 -> 5.00 | InventoryWeight update sent (old 0.00, delta 5.00) | game paused: true, inventory menu open: true
+> [10:16:45.831] [ 384 ] [D] [equip] Player | item: Iron Helmet | equipped | cached equipped weight at event: 5.00 | game paused: true, inventory menu open: true | outcome: sync requested
+> [10:16:46.114] [ 384 ] [D] [equip] Player | item: Iron Helmet | unequipped | cached equipped weight at event: 5.00 | game paused: true, inventory menu open: true | outcome: sync requested
+> [10:16:46.114] [ 384 ] [D] [container-weight] Player | read while the inventory menu is open | equipped weight 0.00 reported
+> [10:16:46.114] [ 384 ] [D] [inventory-weight] Player | equipped weight 5.00 -> 0.00 | InventoryWeight update sent (old 5.00, delta -5.00) | game paused: true, inventory menu open: true
+> [10:16:46.409] [ 384 ] [D] [container-weight] Player | read while the inventory menu is open | equipped weight 5.00 reported
+> [10:16:46.409] [ 384 ] [D] [inventory-weight] Player | equipped weight 0.00 -> 5.00 | InventoryWeight update sent (old 0.00, delta 5.00) | game paused: true, inventory menu open: true
+> [10:16:46.409] [ 384 ] [D] [equip] Player | item: Iron Helmet | equipped | cached equipped weight at event: 5.00 | game paused: true, inventory menu open: true | outcome: sync requested
+> [10:16:46.686] [ 384 ] [D] [equip] Player | item: Iron Helmet | unequipped | cached equipped weight at event: 5.00 | game paused: true, inventory menu open: true | outcome: sync requested
+> [10:16:46.687] [ 384 ] [D] [container-weight] Player | read while the inventory menu is open | equipped weight 0.00 reported
+> [10:16:46.687] [ 384 ] [D] [inventory-weight] Player | equipped weight 5.00 -> 0.00 | InventoryWeight update sent (old 5.00, delta -5.00) | game paused: true, inventory menu open: true
+> ```
+- [v] Close the menu after those changes: `[weight-sync] ... InventoryWeight actor value 52.00 -> 52.00` (already current).
+- [v] "Carrying too much" message: equip past the limit **inside** the inventory. Note when the message appears. Before this change it
       came when the menu closed; it may now come at the moment of the equip, as vanilla does when you take items from a container.
       Tell me if you prefer the old timing.
-- [ ] Walking slowdown and running: over the limit you walk slowly and cannot run; under it, both normal (unchanged behaviour).
-- [ ] Take Conditioning (or remove it with the console) without equipping anything, then open the inventory: the weight shown is
+> The message still only shows outside the inventory, that's fine though, however if i equip and unequip an item so that i repeatedly go over the max carry weight, i get multiple messages for each time i go over.
+- [v] Walking slowdown and running: over the limit you walk slowly and cannot run; under it, both normal (unchanged behaviour).
+- [v] Take Conditioning (or remove it with the console) without equipping anything, then open the inventory: the weight shown is
       the new equipped weight. (Round 1 showed the stale 50 in this case.)
-- [ ] Drop and pick up unequipped items with the inventory open: the weight display does not change (only equipped items count).
-- [ ] Toggle the mod off in the menu, then open the inventory: vanilla full weight. Toggle on: equipped weight. No restart.
-- [ ] Save, reload, open the inventory: weight correct before equipping anything (`[inventory-weight] ... delta 0.00` on the first read).
+- [v] Drop and pick up unequipped items with the inventory open: the weight display does not change (only equipped items count).
+- [v] Toggle the mod off in the menu, then open the inventory: vanilla full weight. Toggle on: equipped weight. No restart.
+- [v] Save, reload, open the inventory: weight correct before equipping anything (`[inventory-weight] ... delta 0.00` on the first read).
 
 ## Open: round 3
 
