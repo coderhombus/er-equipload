@@ -75,7 +75,11 @@ struct WeightNotification
 ///   queue a message.
 /// - Otherwise: the change since the last announcement, so one message per real crossing, and
 ///   after a menu the net change of the whole menu session at once.
-[[nodiscard]] constexpr WeightNotification DecideWeightNotification(WeightReportState a_state, float a_current, bool a_gamePaused) noexcept
+///
+/// a_forceInvalidate (a report deferred from another thread, which may have cached a value the
+/// main thread never saw): at least a zero-change notification, even when unchanged.
+[[nodiscard]] constexpr WeightNotification DecideWeightNotification(WeightReportState a_state, float a_current, bool a_gamePaused,
+                                                                    bool a_forceInvalidate = false) noexcept
 {
     const bool changed = a_state.reported < 0.0f || a_state.reported != a_current;
     if (a_state.announced < 0.0f)
@@ -86,7 +90,7 @@ struct WeightNotification
     {
         return {.send = true, .old = a_state.announced, .delta = a_current - a_state.announced, .next = {a_current, a_current}};
     }
-    if (changed)
+    if (changed || a_forceInvalidate)
     {
         return {.send = true, .old = a_current, .delta = 0.0f, .next = {a_current, a_state.announced}};
     }

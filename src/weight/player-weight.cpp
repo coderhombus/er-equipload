@@ -35,6 +35,9 @@ Rules::WeightReportState g_reportState;
 /// Set from any thread: a report is needed (a change seen off the main thread) or the state must
 /// be forgotten (the mod was off). Consumed on the main thread.
 std::atomic_bool g_reportPending{false};
+
+/// g_reportState.reported, readable from any thread (written on the main thread only).
+std::atomic<float> g_mainReportedWeight{Rules::kNoWeightReported};
 std::atomic_bool g_forgetReports{false};
 
 bool IsMainThread()
@@ -143,24 +146,36 @@ void RecordMainThread()
     g_mainThread.store(std::this_thread::get_id(), std::memory_order_relaxed);
 }
 
-void ReportPlayerWeight(RE::PlayerCharacter& a_player, float a_equippedWeight)
+void ReportPlayerWeight(RE::PlayerCharacter& a_player, float a_equippedWeight, bool a_deferred)
 {
     if (!IsMainThread())
     {
-        g_reportPending.store(true); // the next player update reports it on the main thread
+        // A read here (e.g. GetActorValue(InventoryWeight) on a worker thread during an equip)
+        // may have cached this value in the engine. Only a value the main thread has not reported
+        // can be stale there, so only that defers a report (and its forced invalidation) to the
+        // next player update: reads agreeing with the main thread cost nothing.
+        if (a_equippedWeight != g_mainReportedWeight.load(std::memory_order_relaxed))
+        {
+            logs::debug("[inventory-weight] Player | read off the main thread | equipped weight {:.2f} differs from the last report {:.2f} | "
+                        "deferred to the main thread",
+                        a_equippedWeight, g_mainReportedWeight.load(std::memory_order_relaxed));
+            g_reportPending.store(true);
+        }
         return;
     }
     if (g_forgetReports.exchange(false))
     {
         g_reportState = {};
+        g_mainReportedWeight.store(Rules::kNoWeightReported, std::memory_order_relaxed);
     }
     auto* ui          = RE::UI::GetSingleton();
     const bool paused = ui && ui->GameIsPaused();
 
     // Update the state before sending: the sink can read InventoryWeight, which recomputes it
     // through GetWeightInContainer and lands here again; that nested report then sees no change.
-    const auto notification = Rules::DecideWeightNotification(g_reportState, a_equippedWeight, paused);
+    const auto notification = Rules::DecideWeightNotification(g_reportState, a_equippedWeight, paused, a_deferred);
     g_reportState           = notification.next;
+    g_mainReportedWeight.store(g_reportState.reported, std::memory_order_relaxed);
     if (!notification.send)
     {
         return;
@@ -168,7 +183,9 @@ void ReportPlayerWeight(RE::PlayerCharacter& a_player, float a_equippedWeight)
     SendActorValueUpdate(a_player, RE::ActorValue::kInventoryWeight, notification.old, notification.delta);
     // Values only: reading InventoryWeight here would recompute it inside this call.
     logs::debug("[inventory-weight] Player | equipped weight {:.2f} | {} (old {:.2f}, delta {:.2f}) | game paused: {}", a_equippedWeight,
-                notification.delta != 0.0f ? "change announced" : "cached value invalidated", notification.old, notification.delta, paused);
+                notification.delta != 0.0f ? "change announced"
+                                           : (a_deferred ? "cached value invalidated (deferred report)" : "cached value invalidated"),
+                notification.old, notification.delta, paused);
 }
 
 void ForgetReportedWeight()
@@ -213,9 +230,10 @@ void ApplyPendingSync(RE::PlayerCharacter& a_player)
 
     // Weight changes seen off the main thread, or inside a paused menu (announced only now that
     // the game runs again, as one net change), are reported here.
-    if (enabled && (g_reportPending.exchange(false) || g_reportState.announced != g_reportState.reported))
+    const bool deferred = g_reportPending.exchange(false);
+    if (enabled && (deferred || g_reportState.announced != g_reportState.reported))
     {
-        ReportPlayerWeight(a_player, CalcEquippedWeightLive(a_player));
+        ReportPlayerWeight(a_player, CalcEquippedWeightLive(a_player), deferred);
     }
 
     if (!g_syncPending.exchange(false))

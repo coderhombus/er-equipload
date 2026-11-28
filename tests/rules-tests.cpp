@@ -138,3 +138,24 @@ TEST_CASE("Weight notification: a menu session that ends where it started announ
     state = DecideWeightNotification(state, 52.0f, true).next;
     CHECK_FALSE(DecideWeightNotification(state, 52.0f, false).send);
 }
+
+TEST_CASE("Weight notification: a deferred report always invalidates, never announces twice")
+{
+    // round-5 log, weapon hotkey: the main thread had announced 16 -> 27, then a stale 16 was
+    // cached elsewhere; the deferred report must drop the cache although 27 is "unchanged"
+    const WeightReportState at27{27.0f, 27.0f};
+    CHECK_FALSE(DecideWeightNotification(at27, 27.0f, false).send);
+    const auto forced = DecideWeightNotification(at27, 27.0f, false, true);
+    CHECK(forced.send);
+    CHECK(forced.delta == 0.0f); // no second "carrying too much"
+    CHECK(forced.next.reported == 27.0f);
+    CHECK(forced.next.announced == 27.0f);
+
+    const auto changed = DecideWeightNotification(at27, 16.0f, false, true); // a real change still announces
+    CHECK(changed.old == 27.0f);
+    CHECK(changed.delta == -11.0f);
+
+    const auto paused = DecideWeightNotification(at27, 27.0f, true, true); // paused: still only invalidation
+    CHECK(paused.send);
+    CHECK(paused.delta == 0.0f);
+}

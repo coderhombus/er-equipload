@@ -48,7 +48,9 @@ void RecordMainThread();
 /// only marks a report for the next player update. While the game is paused it only
 /// invalidates the cache (Rules::DecideWeightNotification), so repeated crossings in a menu do
 /// not queue one "carrying too much" message each.
-void ReportPlayerWeight(RE::PlayerCharacter& a_player, float a_equippedWeight);
+/// a_deferred: called by the player update for a report first seen off the main thread; always
+/// invalidates the cached value, since the other thread may have cached a stale one.
+void ReportPlayerWeight(RE::PlayerCharacter& a_player, float a_equippedWeight, bool a_deferred = false);
 
 /// Forgets what was reported (the mod is off), so the next report invalidates the cache. Any thread.
 void ForgetReportedWeight();
