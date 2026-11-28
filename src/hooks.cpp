@@ -110,7 +110,10 @@ struct PlayerUpdateHook
 
 // The InventoryChanges::GetInventoryWeight call at TESObjectREFR::GetWeightInContainer+0x4E
 // (ghidra/get_weight_in_container.md). GetWeightInContainer runs for every container and NPC
-// reference, so only the player's inventory is redirected.
+// reference, so only the player's inventory is redirected. Vanilla GetInventoryWeight notifies
+// the engine after each recompute; ReportPlayerWeight keeps doing that for the player, which is
+// what lets the cached InventoryWeight (and the inventory bottom bar) follow equipment changes
+// while menus are open (docs/engine-notes.md).
 struct GetInventoryWeightHook
 {
     // F3 diagnostic: whether the inventory menu reads the player's weight through this path
@@ -137,9 +140,14 @@ struct GetInventoryWeightHook
         const bool ownerIsPlayer = a_changes && player && a_changes->owner == player;
         if (!Rules::UseEquippedWeightForContainer(Weight::IsEnabled(), ownerIsPlayer))
         {
+            if (ownerIsPlayer)
+            {
+                Weight::ForgetReportedWeight(); // disabled: vanilla reports the weight itself
+            }
             return func(a_changes);
         }
         const float equipped = Weight::CalcEquippedWeightLive(*player);
+        Weight::ReportPlayerWeight(*player, equipped);
         if (IsTraceEnabled())
         {
             logs::trace("[container-weight] Player | equipped weight {:.2f} reported as inventory weight", equipped);

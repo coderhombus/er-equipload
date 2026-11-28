@@ -35,6 +35,16 @@ namespace EquipLoad::Weight
 /// Debug/trace text with every weight involved in an encumbrance decision, for diagnostics.
 [[nodiscard]] std::string DescribeWeights(RE::Actor& a_actor, const Rules::EncumbranceFacts& a_facts);
 
+/// Tells the engine the player's equipped weight, as vanilla GetInventoryWeight does after a
+/// recompute: when it changed since the last report, sends the InventoryWeight actor-value
+/// update. Its sink drops the player's cached InventoryWeight, so the next read (inventory
+/// bottom bar, vanilla checks) recomputes it through GetWeightInContainer = our hook.
+/// Call from the container-weight hook, player branch only.
+void ReportPlayerWeight(RE::PlayerCharacter& a_player, float a_equippedWeight);
+
+/// Forgets the last reported weight (the mod is off), so the next report invalidates the cache.
+void ForgetReportedWeight();
+
 /// Registers for TESEquipEvent. Call once at SKSE kPostLoad.
 void RegisterEquipEventSink();
 

@@ -47,4 +47,33 @@ enum class RunDecision
 {
     return a_enabled && a_ownerIsPlayer;
 }
+/// Marks "no weight reported yet" (equipped weight is never negative).
+inline constexpr float kNoWeightReported = -1.0f;
+
+/// The InventoryWeight notification to send when the player's equipped weight is reported to
+/// the engine (ghidra: vanilla GetInventoryWeight sends SendActorValueUpdate(actor,
+/// InventoryWeight, old, new - old) after every recompute; its sink drops the cached value).
+struct WeightNotification
+{
+    bool send   = false;
+    float old   = 0.0f;
+    float delta = 0.0f;
+};
+
+/// Unchanged weight: nothing to send. First report (or after the mod was off): a zero-delta
+/// notification, which only invalidates the cached value. Otherwise old and the change, so the
+/// engine's own "carrying too much" check sees the crossing exactly as in vanilla.
+[[nodiscard]] constexpr WeightNotification DecideWeightNotification(float a_lastReported, float a_current) noexcept
+{
+    if (a_lastReported < 0.0f)
+    {
+        return {.send = true, .old = a_current, .delta = 0.0f};
+    }
+    if (a_lastReported == a_current)
+    {
+        return {};
+    }
+    return {.send = true, .old = a_lastReported, .delta = a_current - a_lastReported};
+}
+
 } // namespace EquipLoad::Rules

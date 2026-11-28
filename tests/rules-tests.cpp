@@ -72,3 +72,27 @@ TEST_CASE("Container weight: equipped weight only for the player's inventory, on
     CHECK_FALSE(UseEquippedWeightForContainer(false, true)); // disabled: vanilla everywhere
     CHECK_FALSE(UseEquippedWeightForContainer(false, false));
 }
+
+TEST_CASE("Weight notification: only when the reported equipped weight changes")
+{
+    const auto first = DecideWeightNotification(kNoWeightReported, 52.0f);
+    CHECK(first.send);
+    CHECK(first.old == 52.0f);
+    CHECK(first.delta == 0.0f); // invalidates the cache, never triggers the crossing message
+
+    CHECK_FALSE(DecideWeightNotification(52.0f, 52.0f).send);
+
+    const auto up = DecideWeightNotification(52.0f, 57.0f);
+    CHECK(up.send);
+    CHECK(up.old == 52.0f);
+    CHECK(up.delta == 5.0f);
+
+    const auto down = DecideWeightNotification(57.0f, 52.0f);
+    CHECK(down.send);
+    CHECK(down.old == 57.0f);
+    CHECK(down.delta == -5.0f);
+
+    const auto toZero = DecideWeightNotification(9.0f, 0.0f);
+    CHECK(toZero.send);
+    CHECK(toZero.delta == -9.0f);
+}

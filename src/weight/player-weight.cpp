@@ -23,6 +23,19 @@ std::atomic_bool g_syncPending{false};
 /// Reason of the first pending request, for the log line ("equip", "enabled", "disabled").
 std::atomic<const char*> g_syncReason{""};
 
+/// Last equipped weight reported to the engine; Rules::kNoWeightReported when unknown. Atomic:
+/// GetWeightInContainer can run outside the main thread (Papyrus).
+std::atomic<float> g_lastReportedWeight{Rules::kNoWeightReported};
+
+/// Actor::SendActorValueUpdate (ID 38470): (actor, actor value, old value, delta, cause). Vanilla
+/// GetInventoryWeight and SetBaseActorValue pass a null cause.
+void SendActorValueUpdate(RE::Actor& a_actor, RE::ActorValue a_value, float a_old, float a_delta)
+{
+    using func_t = void (*)(RE::Actor*, RE::ActorValue, float, float, void*);
+    static REL::Relocation<func_t> func{REL::ID(38470)};
+    func(&a_actor, a_value, a_old, a_delta, nullptr);
+}
+
 /// Whether the UI is in a state where the player update may not run (F3 investigation).
 std::string DescribeUiState()
 {
@@ -112,6 +125,27 @@ std::string DescribeWeights(RE::Actor& a_actor, const Rules::EncumbranceFacts& a
                        "InventoryWeight actor value {:.2f} | god mode {} | mounted {}",
                        a_facts.equippedWeight, a_actor.equippedWeight, a_facts.carryWeight, a_actor.GetActorValue(RE::ActorValue::kCarryWeight),
                        a_actor.GetActorValue(RE::ActorValue::kInventoryWeight), a_facts.godMode, a_facts.mounted);
+}
+
+void ReportPlayerWeight(RE::PlayerCharacter& a_player, float a_equippedWeight)
+{
+    // Record before sending: the sink can read InventoryWeight, which recomputes it through
+    // GetWeightInContainer and lands here again; that nested report then sees no change.
+    const float last        = g_lastReportedWeight.exchange(a_equippedWeight);
+    const auto notification = Rules::DecideWeightNotification(last, a_equippedWeight);
+    if (!notification.send)
+    {
+        return;
+    }
+    SendActorValueUpdate(a_player, RE::ActorValue::kInventoryWeight, notification.old, notification.delta);
+    // Values only: reading InventoryWeight here would recompute it inside this call.
+    logs::debug("[inventory-weight] Player | equipped weight {:.2f} -> {:.2f} | InventoryWeight update sent (old {:.2f}, delta {:.2f}) | {}",
+                last < 0.0f ? a_equippedWeight : last, a_equippedWeight, notification.old, notification.delta, DescribeUiState());
+}
+
+void ForgetReportedWeight()
+{
+    g_lastReportedWeight.store(Rules::kNoWeightReported);
 }
 
 void RegisterEquipEventSink()
