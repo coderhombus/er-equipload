@@ -63,6 +63,32 @@ below their items as quotes.
 > [07:31:05.489] [ 408 ] [D] [weight-sync] Player | reason: equip | equipped weight | InventoryWeight actor value > 52.00 -> 57.00 (target 57.00) | game paused: false, inventory menu open: false
 > ```
 
+## Open: round 5 (commits ffa8703..bfb0cec)
+
+With `iLogLevel = 1`. Note the thread number in brackets on each line.
+
+### Repeated "carrying too much" messages
+- [ ] With the inventory open, equip and unequip an item so you cross the carry weight several times, ending **over** the limit.
+      Close the menu. Expected: **one** message. Log: in the menu only `[inventory-weight] ... cached value invalidated (... delta 0.00)`
+      lines, the display still updates at once; after closing one `[inventory-weight] ... change announced` with the net change.
+- [ ] Same, ending **under** the limit: no message after closing.
+- [ ] Outside menus (hotkeys), cross the limit up, down, up: one message for each upward crossing (vanilla behaviour).
+- [ ] Walking slowdown and running still follow the weight, in and after menus.
+
+### Evidence for removing the equip-event sync
+Each `[weight-sync]` line now ends with `already current` or `changed by this sync`. Send me the lines for:
+- [ ] Equip and unequip armour, a weapon and a shield with **hotkeys** (no menu open).
+- [ ] The same through the **Favourites** menu.
+- [ ] The same from the **console**: `player.equipitem 00012E4D` / `player.unequipitem 00012E4D` (Iron Helmet), then close the console.
+- [ ] Equip in the inventory (should already be `already current`, as in round 4).
+
+If every line says `already current`, the equip-event sync can be removed. Any `changed by this sync` shows a path the
+notification does not cover yet.
+
+### Threads
+- [ ] All `[inventory-weight]` lines carry the same thread number as the `[equip]` lines (the main thread).
+- [ ] Change settings in the menu while playing, close it: settings saved, gameplay follows (atomic values, no visible change).
+
 ## Open: round 4 (commit a32ef89: the hook now sends the InventoryWeight update)
 
 With `iLogLevel = 1`:
