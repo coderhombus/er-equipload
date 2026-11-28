@@ -50,30 +50,47 @@ enum class RunDecision
 /// Marks "no weight reported yet" (equipped weight is never negative).
 inline constexpr float kNoWeightReported = -1.0f;
 
-/// The InventoryWeight notification to send when the player's equipped weight is reported to
-/// the engine (ghidra: vanilla GetInventoryWeight sends SendActorValueUpdate(actor,
-/// InventoryWeight, old, new - old) after every recompute; its sink drops the cached value).
+/// What the engine has been told about the player's equipped weight.
+struct WeightReportState
+{
+    float reported  = kNoWeightReported; // last value reported (drives cache invalidation)
+    float announced = kNoWeightReported; // last value announced with a real change (drives the crossing message)
+};
+
+/// The InventoryWeight notification to send (ghidra: vanilla GetInventoryWeight sends
+/// SendActorValueUpdate(actor, InventoryWeight, old, new - old) after every recompute; its sink
+/// drops the cached value and, for an upward crossing of the carry weight, queues "You are
+/// carrying too much").
 struct WeightNotification
 {
     bool send   = false;
     float old   = 0.0f;
     float delta = 0.0f;
+    WeightReportState next;
 };
 
-/// Unchanged weight: nothing to send. First report (or after the mod was off): a zero-delta
-/// notification, which only invalidates the cached value. Otherwise old and the change, so the
-/// engine's own "carrying too much" check sees the crossing exactly as in vanilla.
-[[nodiscard]] constexpr WeightNotification DecideWeightNotification(float a_lastReported, float a_current) noexcept
+/// - First report: zero change (only invalidates the cache); the value becomes the baseline.
+/// - While the game is paused (menus): a zero-change notification for every new value, so the
+///   bottom bar redraws with it, but no announcement: repeated crossings in a menu would each
+///   queue a message.
+/// - Otherwise: the change since the last announcement, so one message per real crossing, and
+///   after a menu the net change of the whole menu session at once.
+[[nodiscard]] constexpr WeightNotification DecideWeightNotification(WeightReportState a_state, float a_current, bool a_gamePaused) noexcept
 {
-    if (a_lastReported < 0.0f)
+    const bool changed = a_state.reported < 0.0f || a_state.reported != a_current;
+    if (a_state.announced < 0.0f)
     {
-        return {.send = true, .old = a_current, .delta = 0.0f};
+        return {.send = true, .old = a_current, .delta = 0.0f, .next = {a_current, a_current}};
     }
-    if (a_lastReported == a_current)
+    if (!a_gamePaused && a_state.announced != a_current)
     {
-        return {};
+        return {.send = true, .old = a_state.announced, .delta = a_current - a_state.announced, .next = {a_current, a_current}};
     }
-    return {.send = true, .old = a_lastReported, .delta = a_current - a_lastReported};
+    if (changed)
+    {
+        return {.send = true, .old = a_current, .delta = 0.0f, .next = {a_current, a_state.announced}};
+    }
+    return {.next = a_state};
 }
 
 } // namespace EquipLoad::Rules

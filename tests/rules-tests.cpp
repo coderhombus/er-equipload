@@ -73,26 +73,68 @@ TEST_CASE("Container weight: equipped weight only for the player's inventory, on
     CHECK_FALSE(UseEquippedWeightForContainer(false, false));
 }
 
-TEST_CASE("Weight notification: only when the reported equipped weight changes")
+TEST_CASE("Weight notification: first report only invalidates and sets the baseline")
 {
-    const auto first = DecideWeightNotification(kNoWeightReported, 52.0f);
+    const auto first = DecideWeightNotification({}, 52.0f, false);
     CHECK(first.send);
     CHECK(first.old == 52.0f);
-    CHECK(first.delta == 0.0f); // invalidates the cache, never triggers the crossing message
+    CHECK(first.delta == 0.0f);
+    CHECK(first.next.reported == 52.0f);
+    CHECK(first.next.announced == 52.0f);
 
-    CHECK_FALSE(DecideWeightNotification(52.0f, 52.0f).send);
+    const auto pausedFirst = DecideWeightNotification({}, 52.0f, true);
+    CHECK(pausedFirst.send);
+    CHECK(pausedFirst.delta == 0.0f);
+}
 
-    const auto up = DecideWeightNotification(52.0f, 57.0f);
+TEST_CASE("Weight notification outside menus: every change announced, unchanged sends nothing")
+{
+    const WeightReportState at52{52.0f, 52.0f};
+    CHECK_FALSE(DecideWeightNotification(at52, 52.0f, false).send);
+
+    const auto up = DecideWeightNotification(at52, 57.0f, false);
     CHECK(up.send);
     CHECK(up.old == 52.0f);
     CHECK(up.delta == 5.0f);
+    CHECK(up.next.reported == 57.0f);
+    CHECK(up.next.announced == 57.0f);
 
-    const auto down = DecideWeightNotification(57.0f, 52.0f);
-    CHECK(down.send);
+    const auto down = DecideWeightNotification(up.next, 52.0f, false);
     CHECK(down.old == 57.0f);
     CHECK(down.delta == -5.0f);
+}
 
-    const auto toZero = DecideWeightNotification(9.0f, 0.0f);
-    CHECK(toZero.send);
-    CHECK(toZero.delta == -9.0f);
+TEST_CASE("Weight notification in a paused menu: invalidate only, then the net change once")
+{
+    // round-4 log: helmet on/off five times with the inventory open, 0 <-> 5
+    WeightReportState state{0.0f, 0.0f};
+    for (int i = 0; i < 5; ++i)
+    {
+        const auto on = DecideWeightNotification(state, 5.0f, true);
+        CHECK(on.send);
+        CHECK(on.delta == 0.0f); // no crossing message can be queued
+        CHECK(on.next.announced == 0.0f);
+        const auto off = DecideWeightNotification(on.next, 0.0f, true);
+        CHECK(off.send);
+        CHECK(off.delta == 0.0f);
+        state = off.next;
+    }
+    const auto onLast = DecideWeightNotification(state, 5.0f, true);
+    state             = onLast.next;
+    CHECK_FALSE(DecideWeightNotification(state, 5.0f, true).send); // repeated reads in the menu
+
+    // menu closed: one announcement of the net change
+    const auto closed = DecideWeightNotification(state, 5.0f, false);
+    CHECK(closed.send);
+    CHECK(closed.old == 0.0f);
+    CHECK(closed.delta == 5.0f);
+    CHECK_FALSE(DecideWeightNotification(closed.next, 5.0f, false).send);
+}
+
+TEST_CASE("Weight notification: a menu session that ends where it started announces nothing")
+{
+    WeightReportState state{52.0f, 52.0f};
+    state = DecideWeightNotification(state, 57.0f, true).next;
+    state = DecideWeightNotification(state, 52.0f, true).next;
+    CHECK_FALSE(DecideWeightNotification(state, 52.0f, false).send);
 }

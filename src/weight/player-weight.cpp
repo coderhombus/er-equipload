@@ -7,6 +7,7 @@
 #include <atomic>
 #include <format>
 #include <string>
+#include <thread>
 
 #include "config/settings.h"
 #include "logging.h"
@@ -23,9 +24,23 @@ std::atomic_bool g_syncPending{false};
 /// Reason of the first pending request, for the log line ("equip", "enabled", "disabled").
 std::atomic<const char*> g_syncReason{""};
 
-/// Last equipped weight reported to the engine; Rules::kNoWeightReported when unknown. Atomic:
-/// GetWeightInContainer can run outside the main thread (Papyrus).
-std::atomic<float> g_lastReportedWeight{Rules::kNoWeightReported};
+/// The game's main thread (recorded at plugin load, which SKSE runs on it). The InventoryWeight
+/// notification runs engine code (movement speed, HUD message) that vanilla only drives from the
+/// main thread, so the mod only sends it there.
+std::atomic<std::thread::id> g_mainThread{};
+
+/// What the engine was told about the player's weight. Main thread only.
+Rules::WeightReportState g_reportState;
+
+/// Set from any thread: a report is needed (a change seen off the main thread) or the state must
+/// be forgotten (the mod was off). Consumed on the main thread.
+std::atomic_bool g_reportPending{false};
+std::atomic_bool g_forgetReports{false};
+
+bool IsMainThread()
+{
+    return std::this_thread::get_id() == g_mainThread.load(std::memory_order_relaxed);
+}
 
 /// Actor::SendActorValueUpdate (ID 38470): (actor, actor value, old value, delta, cause). Vanilla
 /// GetInventoryWeight and SetBaseActorValue pass a null cause.
@@ -127,25 +142,42 @@ std::string DescribeWeights(RE::Actor& a_actor, const Rules::EncumbranceFacts& a
                        a_actor.GetActorValue(RE::ActorValue::kInventoryWeight), a_facts.godMode, a_facts.mounted);
 }
 
+void RecordMainThread()
+{
+    g_mainThread.store(std::this_thread::get_id(), std::memory_order_relaxed);
+}
+
 void ReportPlayerWeight(RE::PlayerCharacter& a_player, float a_equippedWeight)
 {
-    // Record before sending: the sink can read InventoryWeight, which recomputes it through
-    // GetWeightInContainer and lands here again; that nested report then sees no change.
-    const float last        = g_lastReportedWeight.exchange(a_equippedWeight);
-    const auto notification = Rules::DecideWeightNotification(last, a_equippedWeight);
+    if (!IsMainThread())
+    {
+        g_reportPending.store(true); // the next player update reports it on the main thread
+        return;
+    }
+    if (g_forgetReports.exchange(false))
+    {
+        g_reportState = {};
+    }
+    auto* ui          = RE::UI::GetSingleton();
+    const bool paused = ui && ui->GameIsPaused();
+
+    // Update the state before sending: the sink can read InventoryWeight, which recomputes it
+    // through GetWeightInContainer and lands here again; that nested report then sees no change.
+    const auto notification = Rules::DecideWeightNotification(g_reportState, a_equippedWeight, paused);
+    g_reportState           = notification.next;
     if (!notification.send)
     {
         return;
     }
     SendActorValueUpdate(a_player, RE::ActorValue::kInventoryWeight, notification.old, notification.delta);
     // Values only: reading InventoryWeight here would recompute it inside this call.
-    logs::debug("[inventory-weight] Player | equipped weight {:.2f} -> {:.2f} | InventoryWeight update sent (old {:.2f}, delta {:.2f}) | {}",
-                last < 0.0f ? a_equippedWeight : last, a_equippedWeight, notification.old, notification.delta, DescribeUiState());
+    logs::debug("[inventory-weight] Player | equipped weight {:.2f} | {} (old {:.2f}, delta {:.2f}) | game paused: {}", a_equippedWeight,
+                notification.delta != 0.0f ? "change announced" : "cached value invalidated", notification.old, notification.delta, paused);
 }
 
 void ForgetReportedWeight()
 {
-    g_lastReportedWeight.store(Rules::kNoWeightReported);
+    g_forgetReports.store(true);
 }
 
 void RegisterEquipEventSink()
@@ -179,7 +211,15 @@ void ApplyPendingSync(RE::PlayerCharacter& a_player)
     {
         lastEnabled = enabled;
         logs::info("[toggle] Player | equipped-weight-only {}", enabled ? "enabled" : "disabled");
+        ForgetReportedWeight();
         RequestSync(enabled ? "enabled" : "disabled");
+    }
+
+    // Weight changes seen off the main thread, or inside a paused menu (announced only now that
+    // the game runs again, as one net change), are reported here.
+    if (enabled && (g_reportPending.exchange(false) || g_reportState.announced != g_reportState.reported))
+    {
+        ReportPlayerWeight(a_player, CalcEquippedWeightLive(a_player));
     }
 
     if (!g_syncPending.exchange(false))

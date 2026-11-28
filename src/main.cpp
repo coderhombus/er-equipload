@@ -88,6 +88,7 @@ void OnSkseMessage(SKSE::MessagingInterface::Message* a_message)
 SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 {
     SKSE::Init(a_skse);
+    Weight::RecordMainThread(); // SKSE loads plugins on the game's main thread
 
     if (!IsSupportedRuntime(a_skse->RuntimeVersion()))
     {
