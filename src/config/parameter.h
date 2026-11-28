@@ -4,6 +4,7 @@
 // Engine-independent (no RE/SKSE), so it is unit-tested on any host.
 
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
 #include <string>
 #include <utility>
@@ -35,9 +36,10 @@ struct ParameterSpec
 /// A typed setting. Values are always kept inside [min, max]: the store validates on load and
 /// SetValue clamps, so gameplay code can read values without re-checking them.
 ///
-/// Threading: the in-game menu writes values from the render thread while game threads read
-/// them. Values are single bool/float/int32 stores, which are not torn on x64; a stale read
-/// for one frame is harmless, so no locking is used on the hot path.
+/// Threading: the in-game menu writes values from its own thread while game threads (main,
+/// Papyrus) read them, so the value is a std::atomic. Relaxed ordering: each setting is
+/// independent, a value one frame old is harmless, and on x64 a relaxed load or store of a
+/// bool/float/int32 compiles to the same plain move as before, so the hot path costs nothing.
 template <class T>
 class Parameter
 {
@@ -50,22 +52,24 @@ class Parameter
     {
     }
 
-    [[nodiscard]] T GetValue() const noexcept { return m_value; }
+    [[nodiscard]] T GetValue() const noexcept { return m_value.load(std::memory_order_relaxed); }
     [[nodiscard]] const ParameterSpec<T>& Spec() const noexcept { return m_spec; }
 
     /// Stores the value clamped to the valid range. Signature matches what StyyxUtil::FUCKUtil
     /// widgets expect from a config entry.
-    void SetValue(T a_value) noexcept { m_value = Clamp(a_value); }
+    void SetValue(T a_value) noexcept { m_value.store(Clamp(a_value), std::memory_order_relaxed); }
 
-    void ResetToDefault() noexcept { m_value = m_spec.defaultValue; }
+    void ResetToDefault() noexcept { m_value.store(m_spec.defaultValue, std::memory_order_relaxed); }
 
     [[nodiscard]] bool InRange(T a_value) const noexcept { return !(a_value < m_spec.minValue) && !(m_spec.maxValue < a_value); }
 
     [[nodiscard]] T Clamp(T a_value) const noexcept { return std::clamp(a_value, m_spec.minValue, m_spec.maxValue); }
 
   private:
+    static_assert(std::atomic<T>::is_always_lock_free, "settings must be lock-free atomics");
+
     ParameterSpec<T> m_spec;
-    T m_value;
+    std::atomic<T> m_value;
 };
 
 using BoolParameter  = Parameter<bool>;
