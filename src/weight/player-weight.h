@@ -19,7 +19,9 @@ namespace EquipLoad::Weight
 [[nodiscard]] bool IsEnabled();
 
 /// Recomputes the actor's equipped weight from its inventory now (Actor::CalcEquippedWeight),
-/// refreshing the engine's cached value. GetEquippedWeight() can return a stale cache right
+/// refreshing the engine's cached value. Threads: it writes the actor's equipped-weight cache
+/// from whichever thread calls it, exactly as the engine's own GetEquippedWeight does on a
+/// cache miss; the mod adds no other off-main-thread engine writes. GetEquippedWeight() can return a stale cache right
 /// after an equipment change.
 ///
 /// What counts (InventoryChanges::GetEquippedWeight, ghidra/GetEquippedWeight.md, confirmed in

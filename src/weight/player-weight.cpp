@@ -233,8 +233,10 @@ void ApplyPendingSync(RE::PlayerCharacter& a_player)
     const float before = a_player.GetActorValue(RE::ActorValue::kInventoryWeight);
     const float target = enabled ? CalcEquippedWeightLive(a_player) : a_player.GetWeightInContainer();
     a_player.SetActorValue(RE::ActorValue::kInventoryWeight, target);
-    logs::debug("[weight-sync] Player | reason: {} | {} | InventoryWeight actor value {:.2f} -> {:.2f} (target {:.2f}) | {}", reason,
+    // "already current" means the InventoryWeight notification had already brought the value up
+    // to date, i.e. this sync did nothing (evidence for removing it, docs/in-game-testing.md).
+    logs::debug("[weight-sync] Player | reason: {} | {} | InventoryWeight actor value {:.2f} -> {:.2f} (target {:.2f}) | {} | {}", reason,
                 enabled ? "equipped weight" : "vanilla inventory weight", before, a_player.GetActorValue(RE::ActorValue::kInventoryWeight), target,
-                DescribeUiState());
+                before == target ? "already current" : "changed by this sync", DescribeUiState());
 }
 } // namespace EquipLoad::Weight
